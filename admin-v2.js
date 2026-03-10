@@ -1,4 +1,4 @@
-/* CloudScale Plugin Crash Recovery — Admin JS v1.4.2 */
+/* CloudScale Plugin Crash Recovery — Admin JS v1.4.0 */
 (function ($) {
     'use strict';
 
@@ -173,7 +173,7 @@
         countdownInterval = setInterval(tick, 1000);
     }
 
-    if (parseInt(CS_PCR.debug_active, 10) === 1 && parseInt(CS_PCR.debug_revert_at, 10) > 0) {
+    if (CS_PCR.debug_active && CS_PCR.debug_revert_at) {
         startCountdown(parseInt(CS_PCR.debug_revert_at, 10));
     }
 

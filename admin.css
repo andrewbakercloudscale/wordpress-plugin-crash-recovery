@@ -103,6 +103,7 @@
 
 .cs-pcr-tab:nth-child(2) { background: linear-gradient(135deg, #4a0072 0%, #6a0080 100%); }
 .cs-pcr-tab:nth-child(3) { background: linear-gradient(135deg, #004d40 0%, #00695c 100%); }
+.cs-pcr-tab:nth-child(4) { background: linear-gradient(135deg, #7a2000 0%, #bf360c 100%); }
 
 .cs-pcr-tab:hover { filter: brightness(1.2); }
 
@@ -425,3 +426,167 @@
 .cs-pcr-log-success { color: #4ade80; display: block; font-weight: 600; }
 .cs-pcr-log-alert   { color: #fca5a5; display: block; font-weight: 600; }
 .cs-pcr-log-action  { color: #fbbf24; display: block; }
+
+/* ── Header actions group (button + explain in header) ── */
+.cs-pcr-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cs-pcr-card-header .cs-pcr-btn-load-logs {
+    font-size: 11px;
+    padding: 5px 14px;
+    background: #2980b9;
+    color: #fff;
+    border: 1px solid #1a6a9a;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+.cs-pcr-card-header .cs-pcr-btn-load-logs:hover { background: #1a6a9a; color: #fff; }
+
+/* ── Card header orange (Logs & Debug tab) ── */
+.cs-pcr-header-orange { background: linear-gradient(135deg, #7a2000 0%, #bf360c 100%); border-bottom: 3px solid #ff9800; }
+
+/* ── Debug status row ── */
+.cs-pcr-debug-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.cs-pcr-debug-status-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cs-pcr-debug-countdown-label {
+    font-size: 13.5px;
+    color: var(--pcr-text);
+}
+
+.cs-pcr-debug-revert-time {
+    font-size: 12px;
+    color: var(--pcr-muted);
+}
+
+.cs-pcr-debug-btn-row {
+    display: flex;
+    gap: 10px;
+}
+
+/* ── Badge sizes ── */
+.cs-pcr-badge-lg {
+    font-size: 13px !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+}
+
+/* ── Danger / warn buttons ── */
+.cs-pcr-btn-danger {
+    background: #e74c3c;
+    color: #ffffff;
+    border: 1px solid #c0392b;
+}
+.cs-pcr-btn-danger:hover { background: #c0392b; color: #fff; }
+
+.cs-pcr-btn-warn {
+    background: #f39c12;
+    color: #1a1a1a;
+    border: 1px solid #d68910;
+}
+.cs-pcr-btn-warn:hover { background: #d68910; color: #1a1a1a; }
+
+/* ── Log toolbar ── */
+.cs-pcr-log-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.cs-pcr-log-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.cs-pcr-log-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cs-pcr-autoreload-label {
+    font-size: 13px;
+    color: var(--pcr-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+/* ── Filter controls ── */
+.cs-pcr-select {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--pcr-border);
+    border-radius: 5px;
+    background: #ffffff;
+    color: var(--pcr-text);
+    cursor: pointer;
+    max-width: 220px;
+}
+
+.cs-pcr-search-input {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--pcr-border);
+    border-radius: 5px;
+    color: var(--pcr-text);
+    background: #ffffff;
+    width: 180px;
+}
+
+.cs-pcr-search-input:focus,
+.cs-pcr-select:focus {
+    outline: none;
+    border-color: var(--pcr-accent);
+    box-shadow: 0 0 0 2px rgba(74,158,255,0.2);
+}
+
+/* ── Log entry count badge in card header ── */
+.cs-pcr-log-count-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    margin-left: 6px;
+}
+
+/* ── Unified log terminal ── */
+.cs-pcr-log-terminal {
+    max-height: 560px;
+    overflow-y: auto;
+    font-size: 11.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.cs-pcr-log-line {
+    display: block;
+    padding: 1px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    line-height: 1.55;
+}
