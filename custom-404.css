@@ -1,0 +1,131 @@
+/* CloudScale Crash Recovery — Custom 404 page styles v1.5.0 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+    background: linear-gradient(160deg, #cce9fb 0%, #a8d8f0 100%);
+    color: #1a3a5c;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+    overflow-x: hidden;
+    position: relative;
+}
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 640px; height: 640px;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
+    pointer-events: none;
+}
+.cs404-wrap {
+    position: relative;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    animation: cs404-in 0.55s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes cs404-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.cs404-graphic {
+    width: 160px; height: 160px;
+    margin: 0 auto 28px;
+    filter: drop-shadow(0 8px 36px rgba(0,100,180,0.18));
+}
+.cs404-code {
+    font-size: clamp(80px, 18vw, 124px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -5px;
+    background: linear-gradient(135deg, #f57c00 0%, #ffa726 55%, #ff9800 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+.cs404-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0d2a4a;
+    margin-bottom: 12px;
+    letter-spacing: 0.01em;
+}
+.cs404-desc {
+    font-size: 19px;
+    font-weight: 700;
+    color: #0d2a4a;
+    line-height: 1.5;
+    margin-bottom: 32px;
+}
+.cs404-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 32px;
+    background: linear-gradient(135deg, #f57c00, #e65100);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 24px rgba(245,124,0,0.32);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.cs404-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(245,124,0,0.44); }
+.cs404-btn:focus { outline: 2px solid #f57c00; outline-offset: 3px; }
+.cs404-btn svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+/* Brand block */
+.cs404-brand {
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+.cs404-logo a { display: inline-block; }
+.cs404-logo img { max-height: 48px; width: auto; display: block; }
+.cs404-site-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0d2a4a;
+    letter-spacing: 0.04em;
+}
+.cs404-tagline {
+    font-size: 13px;
+    color: #3a6080;
+    letter-spacing: 0.01em;
+}
+/* Game */
+.cs404-game-wrap {
+    margin-top: 44px;
+    text-align: center;
+    animation: cs404-in 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.15s;
+}
+.cs404-game-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #3a6080;
+    margin-bottom: 10px;
+}
+#cs404-game {
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.45);
+    border: 2px solid rgba(42,96,144,0.25);
+    cursor: pointer;
+    max-width: 100%;
+}
+.cs404-dots { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.cs404-dot { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.6); }

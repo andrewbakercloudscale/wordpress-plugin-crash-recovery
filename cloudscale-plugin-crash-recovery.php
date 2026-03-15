@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.4.7
+ * Version:           1.5.0
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.4.7' );
+define( 'CS_PCR_VERSION', '1.5.0' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -50,6 +50,8 @@ add_action( 'wp_ajax_cs_pcr_enable_debug',  'cs_pcr_ajax_enable_debug' );
 add_action( 'wp_ajax_cs_pcr_disable_debug', 'cs_pcr_ajax_disable_debug' );
 add_action( 'wp_ajax_cs_pcr_check_config',  'cs_pcr_ajax_check_config' );
 add_action( 'cs_pcr_revert_debug_hook',     'cs_pcr_do_revert_debug' );
+add_action( 'template_redirect',            'cs_pcr_maybe_custom_404', 1 );
+add_action( 'wp_ajax_cs_pcr_save_settings', 'cs_pcr_ajax_save_settings' );
 
 // ---------------------------------------------------------------------------
 // Probe endpoint
@@ -104,6 +106,265 @@ function cs_pcr_maybe_probe_endpoint() {
     // but satisfies PHPCS output-escaping rules.
     echo esc_html( CS_PCR_OK_BODY );
     exit; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plain-text probe endpoint; wp_die() adds HTML incompatible with the watchdog curl check.
+}
+
+// ---------------------------------------------------------------------------
+// Custom 404 page
+// ---------------------------------------------------------------------------
+
+/**
+ * Intercepts WordPress 404 responses and outputs a custom branded page.
+ *
+ * Only fires when the `cs_pcr_custom_404` option is enabled (1). Sends the
+ * correct 404 status header, outputs a self-contained HTML page (no theme
+ * dependency), then exits.
+ *
+ * Hooked on `template_redirect` at priority 1 so it fires before any theme
+ * or page-builder template logic.
+ *
+ * @since  1.5.0
+ * @return void
+ */
+function cs_pcr_maybe_custom_404() {
+    if ( ! is_404() ) { return; }
+    if ( ! get_option( CS_PCR_CUSTOM_404_OPTION, 0 ) ) { return; }
+
+    status_header( 404 );
+    nocache_headers();
+    header( 'Content-Type: text/html; charset=utf-8' );
+
+    $site_name    = get_bloginfo( 'name' );
+    $site_tagline = get_bloginfo( 'description' );
+    $home_url     = home_url( '/' );
+    $logo_html    = '';
+    if ( has_custom_logo() ) {
+        $logo_html = get_custom_logo();
+    } elseif ( $icon_url = get_site_icon_url( 64 ) ) {
+        $logo_html = '<img src="' . esc_url( $icon_url ) . '" alt="" width="48" height="48">';
+    }
+    ?>
+<!DOCTYPE html>
+<html lang="<?php echo esc_attr( get_locale() ); ?>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?> &mdash; <?php echo esc_html( $site_name ); ?></title>
+<link rel="stylesheet" href="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.css' ); ?>">
+</head>
+<body>
+<div class="cs404-dots" aria-hidden="true">
+    <div class="cs404-dot" style="width:3px;height:3px;top:11%;left:7%;opacity:.7;"></div>
+    <div class="cs404-dot" style="width:2px;height:2px;top:19%;left:86%;opacity:.5;"></div>
+    <div class="cs404-dot" style="width:4px;height:4px;top:73%;left:6%;opacity:.6;"></div>
+    <div class="cs404-dot" style="width:2px;height:2px;top:81%;left:91%;opacity:.5;"></div>
+    <div class="cs404-dot" style="width:3px;height:3px;top:44%;left:3%;opacity:.4;"></div>
+    <div class="cs404-dot" style="width:2px;height:2px;top:34%;left:96%;opacity:.4;"></div>
+    <div class="cs404-dot" style="width:5px;height:5px;top:89%;left:50%;opacity:.25;background:#f57c00;"></div>
+    <div class="cs404-dot" style="width:3px;height:3px;top:5%;left:48%;opacity:.35;background:#f57c00;"></div>
+</div>
+<div class="cs404-wrap">
+    <div class="cs404-graphic" aria-hidden="true">
+        <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="cs404g" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#f57c00" stop-opacity=".18"/>
+                    <stop offset="100%" stop-color="#f57c00" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <circle cx="80" cy="80" r="76" fill="url(#cs404g)"/>
+            <circle cx="80" cy="80" r="70" fill="none" stroke="#2a6090" stroke-width="1" stroke-dasharray="6 3"/>
+            <circle cx="80" cy="80" r="58" fill="#ddeef8" stroke="#2a6090" stroke-width="2"/>
+            <path d="M80 30 L112 46 L112 86 Q112 112 80 126 Q48 112 48 86 L48 46 Z" fill="#c5e1f5" stroke="#2a6090" stroke-width="1.5"/>
+            <path d="M80 36 L107 50 L107 86 Q107 109 80 122 Q53 109 53 86 L53 50 Z" fill="none" stroke="#4a8ab5" stroke-width="1" opacity=".7"/>
+            <text x="80" y="100" text-anchor="middle" font-size="46" font-weight="900" fill="#f57c00" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">?</text>
+            <circle cx="128" cy="55" r="4" fill="#f57c00" opacity=".38"/>
+            <circle cx="128" cy="55" r="8" fill="none" stroke="#f57c00" stroke-width="1" opacity=".18"/>
+            <circle cx="22" cy="36" r="1.5" fill="#2a6090" opacity=".5"/>
+            <circle cx="140" cy="42" r="1" fill="#2a6090" opacity=".4"/>
+            <circle cx="138" cy="130" r="1.5" fill="#2a6090" opacity=".3"/>
+            <circle cx="20" cy="118" r="1" fill="#2a6090" opacity=".4"/>
+            <circle cx="80" cy="7" r="1.5" fill="#f57c00" opacity=".5"/>
+        </svg>
+    </div>
+    <div class="cs404-code">404</div>
+    <h1 class="cs404-title"><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
+    <p class="cs404-desc"><?php echo esc_html__( "The page you're looking for doesn't exist or may have been moved.", 'cloudscale-crash-recovery' ); ?></p>
+    <a href="<?php echo esc_url( $home_url ); ?>" class="cs404-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <?php echo esc_html__( 'Back to Home', 'cloudscale-crash-recovery' ); ?>
+    </a>
+    <div class="cs404-brand">
+        <?php if ( $logo_html ) : ?><div class="cs404-logo"><?php echo wp_kses_post( $logo_html ); ?></div><?php endif; ?>
+        <p class="cs404-site-name"><?php echo esc_html( $site_name ); ?></p>
+        <?php if ( $site_tagline ) : ?><p class="cs404-tagline"><?php echo esc_html( $site_tagline ); ?></p><?php endif; ?>
+    </div>
+</div>
+
+<div class="cs404-game-wrap">
+    <p class="cs404-game-label">While you're here&hellip;</p>
+    <canvas id="cs404-game" width="620" height="160" aria-label="404 Runner mini-game"></canvas>
+</div>
+
+<script>
+(function(){
+    var c=document.getElementById('cs404-game');
+    if(!c||!c.getContext)return;
+    /* roundRect polyfill for Safari <15.4 */
+    if(!CanvasRenderingContext2D.prototype.roundRect){
+        CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+            r=Math.min(r,w/2,h/2);
+            this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.arcTo(x+w,y,x+w,y+r,r);
+            this.lineTo(x+w,y+h-r);this.arcTo(x+w,y+h,x+w-r,y+h,r);
+            this.lineTo(x+r,y+h);this.arcTo(x,y+h,x,y+h-r,r);
+            this.lineTo(x,y+r);this.arcTo(x,y,x+r,y,r);this.closePath();
+        };
+    }
+    var ctx=c.getContext('2d');
+    var W=c.width,H=c.height;
+    var GY=H-28;
+    var running=false,over=false,score=0,hi=0,frame=0,speed=4;
+    var px=80,pw=26,ph=30,py=GY-ph,vy=0,onGround=true;
+    var GRAV=0.55,JUMP=-11.5;
+    var obs=[],nextObs=90;
+    var clouds=[{x:120,y:22,w:70},{x:320,y:18,w:55},{x:500,y:26,w:65}];
+
+    function reset(){py=GY-ph;vy=0;onGround=true;obs=[];score=0;frame=0;speed=4;nextObs=90;running=true;over=false;}
+
+    function jump(){
+        if(!running&&!over){reset();return;}
+        if(over){reset();return;}
+        if(onGround){vy=JUMP;onGround=false;}
+    }
+
+    document.addEventListener('keydown',function(e){
+        if(e.code==='Space'||e.key===' '){
+            var el=document.getElementById('cs404-game');
+            if(el){var r=el.getBoundingClientRect();if(r.top<window.innerHeight&&r.bottom>0){e.preventDefault();jump();}}
+        }
+    });
+    c.addEventListener('click',jump);
+    c.addEventListener('touchstart',function(e){e.preventDefault();jump();},{passive:false});
+
+    function drawPlayer(){
+        /* body */
+        ctx.fillStyle='#f57c00';
+        ctx.beginPath();ctx.roundRect(px,py,pw,ph,4);ctx.fill();
+        /* visor */
+        ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.beginPath();ctx.roundRect(px+4,py+6,pw-8,10,3);ctx.fill();
+        /* pupils */
+        ctx.fillStyle='#0d2a4a';
+        ctx.fillRect(px+6,py+8,4,4);
+        ctx.fillRect(px+16,py+8,4,4);
+        /* legs */
+        var lleg=running?(Math.sin(frame*0.28)*4|0):0;
+        ctx.fillStyle='#e65100';
+        ctx.fillRect(px+3,py+ph,7,5+lleg);
+        ctx.fillRect(px+pw-10,py+ph,7,5-lleg);
+    }
+
+    function drawObs(o){
+        /* body */
+        ctx.fillStyle='#0d2a4a';
+        ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,3);ctx.fill();
+        ctx.fillStyle='rgba(245,124,0,0.15)';
+        ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,3);ctx.fill();
+        /* text */
+        ctx.fillStyle='#f57c00';
+        ctx.font='bold 10px monospace';
+        ctx.textAlign='center';
+        ctx.fillText('404',o.x+o.w/2,o.y+o.h/2+4);
+    }
+
+    function drawCloud(cl){
+        ctx.fillStyle='rgba(255,255,255,0.55)';
+        ctx.beginPath();
+        ctx.ellipse(cl.x,cl.y,cl.w/2,12,0,0,Math.PI*2);
+        ctx.ellipse(cl.x-cl.w/4,cl.y+4,cl.w/4,9,0,0,Math.PI*2);
+        ctx.ellipse(cl.x+cl.w/4,cl.y+4,cl.w/4,9,0,0,Math.PI*2);
+        ctx.fill();
+    }
+
+    function update(){
+        if(!running||over)return;
+        frame++;score++;
+        speed=4+Math.floor(score/300)*0.4;
+        /* gravity */
+        vy+=GRAV;py+=vy;
+        if(py>=GY-ph){py=GY-ph;vy=0;onGround=true;}
+        /* clouds */
+        for(var i=0;i<clouds.length;i++){
+            clouds[i].x-=speed*0.3;
+            if(clouds[i].x+clouds[i].w<0)clouds[i].x=W+clouds[i].w;
+        }
+        /* spawn */
+        nextObs--;
+        if(nextObs<=0){
+            var h=28+Math.floor(Math.random()*26);
+            obs.push({x:W,y:GY-h,w:30,h:h});
+            nextObs=65+Math.floor(Math.random()*70);
+        }
+        /* move & collide */
+        for(var j=obs.length-1;j>=0;j--){
+            obs[j].x-=speed;
+            if(obs[j].x+obs[j].w<0){obs.splice(j,1);continue;}
+            if(px+pw-5>obs[j].x+4&&px+5<obs[j].x+obs[j].w-4&&py+ph>obs[j].y+3&&py<obs[j].y+obs[j].h){
+                over=true;running=false;if(score>hi)hi=score;
+            }
+        }
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        /* clouds */
+        for(var i=0;i<clouds.length;i++)drawCloud(clouds[i]);
+        /* ground */
+        ctx.fillStyle='rgba(42,96,144,0.35)';
+        ctx.fillRect(0,GY,W,H-GY);
+        ctx.fillStyle='#2a6090';
+        ctx.fillRect(0,GY,W,3);
+        /* score */
+        ctx.fillStyle='#0d2a4a';
+        ctx.font='bold 12px monospace';
+        ctx.textAlign='right';
+        if(hi>0)ctx.fillText('HI '+String(hi).padStart(5,'0'),W-65,18);
+        ctx.fillText(String(score).padStart(5,'0'),W-10,18);
+        /* player & obs */
+        if(running||over){
+            for(var j=0;j<obs.length;j++)drawObs(obs[j]);
+            drawPlayer();
+        } else {
+            drawPlayer();
+            ctx.fillStyle='#0d2a4a';
+            ctx.font='bold 14px monospace';
+            ctx.textAlign='center';
+            ctx.fillText('SPACE  or  TAP  to  play',W/2,H/2+4);
+        }
+        /* game over overlay */
+        if(over){
+            ctx.fillStyle='rgba(204,233,251,0.82)';
+            ctx.beginPath();ctx.roundRect(W/2-110,H/2-28,220,56,8);ctx.fill();
+            ctx.strokeStyle='rgba(42,96,144,0.3)';ctx.lineWidth=1.5;
+            ctx.beginPath();ctx.roundRect(W/2-110,H/2-28,220,56,8);ctx.stroke();
+            ctx.fillStyle='#0d2a4a';
+            ctx.font='bold 15px monospace';
+            ctx.textAlign='center';
+            ctx.fillText('GAME OVER',W/2,H/2-7);
+            ctx.font='11px monospace';
+            ctx.fillStyle='#3a6080';
+            ctx.fillText('SPACE or TAP to retry',W/2,H/2+12);
+        }
+    }
+
+    function loop(){update();draw();requestAnimationFrame(loop);}
+    loop();
+})();
+</script>
+
+</body>
+</html>
+    <?php
+    exit;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,7 +469,8 @@ function cs_pcr_get_log_tail( $lines = 20 ) {
 // Logs & Debug — helpers
 // ---------------------------------------------------------------------------
 
-define( 'CS_PCR_DEBUG_OPTION',   'cs_pcr_debug_revert_at' );
+define( 'CS_PCR_DEBUG_OPTION',      'cs_pcr_debug_revert_at' );
+define( 'CS_PCR_CUSTOM_404_OPTION', 'cs_pcr_custom_404' );
 define( 'CS_PCR_DEBUG_MINUTES',  30 );
 define( 'CS_PCR_DEBUG_CRON_SCRIPT', '/usr/local/bin/cs-debug-revert.sh' );
 
@@ -290,6 +552,9 @@ function cs_pcr_write_debug_revert_cron( $revert_at ) {
     if ( ! function_exists( 'shell_exec' ) ) { return false; }
     $wp_path    = ABSPATH;
     $php_bin    = PHP_BINARY;
+    foreach ( [ '/usr/bin/php', '/usr/local/bin/php' ] as $_cp ) {
+        if ( is_executable( $_cp ) ) { $php_bin = $_cp; break; }
+    }
     $plugin_url = admin_url( 'admin-ajax.php' );
     $cfg        = Cloudscale_Crash_Recovery_Utils::get_wp_config_path();
     $script     = CS_PCR_DEBUG_CRON_SCRIPT;
@@ -353,6 +618,29 @@ function cs_pcr_do_revert_debug() {
     cs_pcr_patch_wp_config( false );
     delete_option( CS_PCR_DEBUG_OPTION );
     wp_clear_scheduled_hook( 'cs_pcr_revert_debug_hook' );
+}
+
+// ---------------------------------------------------------------------------
+// AJAX — save plugin settings
+// ---------------------------------------------------------------------------
+
+/**
+ * AJAX handler: saves plugin settings.
+ *
+ * Currently handles the `custom_404` toggle. Requires nonce `cs_pcr_checks`
+ * and capability `manage_options`.
+ *
+ * @since  1.5.0
+ * @return void Exits via wp_send_json_success().
+ */
+function cs_pcr_ajax_save_settings() {
+    check_ajax_referer( 'cs_pcr_checks', 'nonce' );
+    if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Forbidden.', 'cloudscale-crash-recovery' ) ); }
+
+    $custom_404 = isset( $_POST['custom_404'] ) ? ( (int) $_POST['custom_404'] ? 1 : 0 ) : 0;
+    update_option( CS_PCR_CUSTOM_404_OPTION, $custom_404 );
+
+    wp_send_json_success( [ 'custom_404' => $custom_404 ] );
 }
 
 // ---------------------------------------------------------------------------
@@ -620,10 +908,11 @@ function cs_pcr_enqueue_assets( $hook ) {
     wp_enqueue_style(  'cs-pcr-admin', plugin_dir_url( __FILE__ ) . 'admin.css', [], $css_ver );
     wp_enqueue_script( 'cs-pcr-admin', plugin_dir_url( __FILE__ ) . 'admin.js',  [ 'jquery' ], $js_ver, true );
     wp_localize_script( 'cs-pcr-admin', 'CS_PCR', [
-        'ajax_url'       => admin_url( 'admin-ajax.php' ),
-        'nonce'          => wp_create_nonce( 'cs_pcr_checks' ),
-        'debug_active'   => Cloudscale_Crash_Recovery_Utils::debug_is_active() ? 1 : 0,
+        'ajax_url'        => admin_url( 'admin-ajax.php' ),
+        'nonce'           => wp_create_nonce( 'cs_pcr_checks' ),
+        'debug_active'    => Cloudscale_Crash_Recovery_Utils::debug_is_active() ? 1 : 0,
         'debug_revert_at' => (int) get_option( CS_PCR_DEBUG_OPTION, 0 ),
+        'custom_404'      => get_option( CS_PCR_CUSTOM_404_OPTION, 0 ) ? 1 : 0,
     ] );
 }
 
@@ -651,8 +940,19 @@ function cs_pcr_ajax_run_checks() {
     $results = [];
 
     // 1. PHP CLI
-    $php_bin  = PHP_BINARY;
-    $php_test = shell_exec( escapeshellcmd( $php_bin ) . ' -r "echo \'OK\';" 2>&1' );
+    // PHP_BINARY points to php-fpm when running under FPM; probe CLI paths first.
+    $php_bin  = '';
+    $php_test = '';
+    foreach ( [ '/usr/bin/php', '/usr/local/bin/php', PHP_BINARY ] as $_candidate ) {
+        if ( is_executable( $_candidate ) ) {
+            $_out = shell_exec( escapeshellcmd( $_candidate ) . ' -r "echo \'OK\';" 2>&1' );
+            if ( strpos( (string)$_out, 'OK' ) !== false ) {
+                $php_bin  = $_candidate;
+                $php_test = $_out;
+                break;
+            }
+        }
+    }
     $results[] = Cloudscale_Crash_Recovery_Utils::build_check('PHP CLI',
         strpos( (string)$php_test, 'OK' ) !== false,
         'PHP CLI available at ' . $php_bin,
@@ -668,7 +968,13 @@ function cs_pcr_ajax_run_checks() {
         null, 'warning' );
 
     // 3. curl binary
+    // `which` may return empty under FPM's restricted PATH; fall back to known paths.
     $curl_path = trim( (string)shell_exec( 'which curl 2>/dev/null' ) );
+    if ( empty( $curl_path ) ) {
+        foreach ( [ '/usr/bin/curl', '/usr/local/bin/curl' ] as $_cp ) {
+            if ( is_executable( $_cp ) ) { $curl_path = $_cp; break; }
+        }
+    }
     $results[] = Cloudscale_Crash_Recovery_Utils::build_check('curl binary',
         ! empty( $curl_path ),
         'curl found at ' . $curl_path,
@@ -779,6 +1085,9 @@ function cs_pcr_ajax_run_checks() {
 function cs_pcr_render_page() {
     $probe_url  = add_query_arg( [ CS_PCR_PROBE_KEY => 1 ], home_url( '/' ) );
     $php_bin    = PHP_BINARY;
+    foreach ( [ '/usr/bin/php', '/usr/local/bin/php' ] as $_cp ) {
+        if ( is_executable( $_cp ) ) { $php_bin = $_cp; break; }
+    }
     $plugin_dir = WP_PLUGIN_DIR;
 
     // Status tab data — read once
@@ -788,6 +1097,11 @@ function cs_pcr_render_page() {
     $legacy_cron    = wp_next_scheduled( 'cs_pcr_watchdog_tick' );
     $wpcli_bin      = trim( (string)shell_exec( 'which wp 2>/dev/null' ) ?: '' );
     $curl_bin       = trim( (string)shell_exec( 'which curl 2>/dev/null' ) ?: '' );
+    if ( empty( $curl_bin ) ) {
+        foreach ( [ '/usr/bin/curl', '/usr/local/bin/curl' ] as $_cp ) {
+            if ( is_executable( $_cp ) ) { $curl_bin = $_cp; break; }
+        }
+    }
     $last_recovery  = Cloudscale_Crash_Recovery_Utils::last_recovery( $log_lines );
     $last_alert     = Cloudscale_Crash_Recovery_Utils::last_alert( $log_lines );
     $log_size       = file_exists( CS_PCR_LOG_FILE ) ? round( filesize( CS_PCR_LOG_FILE ) / 1024, 1 ) . ' KB' : 'not found';
@@ -823,6 +1137,7 @@ function cs_pcr_render_page() {
             <button type="button" class="cs-pcr-tab" data-tab="setup">System Cron Setup</button>
             <button type="button" class="cs-pcr-tab" data-tab="status">Status &amp; Log</button>
             <button type="button" class="cs-pcr-tab" data-tab="logs">Logs &amp; Debug</button>
+            <button type="button" class="cs-pcr-tab" data-tab="settings">Settings</button>
         </div>
 
         <!-- Tab: Compatibility Checks -->
@@ -874,7 +1189,7 @@ function cs_pcr_render_page() {
                             <span class="cs-pcr-terminal-label">cs-crash-watchdog.sh</span>
                         </div>
                         <pre class="cs-pcr-terminal" id="cs-pcr-watchdog-script">#!/bin/bash
-# CloudScale Crash Recovery — System Cron Watchdog v1.4.7
+# CloudScale Crash Recovery — System Cron Watchdog v1.5.0
 # Deploy to: /usr/local/bin/cs-crash-watchdog.sh
 # Permissions: chmod +x /usr/local/bin/cs-crash-watchdog.sh
 # Cron (root): * * * * * /usr/local/bin/cs-crash-watchdog.sh
@@ -1198,6 +1513,34 @@ exit 0</pre>
                         <div class="cs-pcr-terminal cs-pcr-log-terminal" id="cs-pcr-log-output"></div>
                     </div>
                     <div id="cs-pcr-logs-empty" style="display:none;padding:16px 0;color:#6b7690;font-size:13.5px;">No log entries found in the last 24 hours matching the current filters.</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Tab: Settings -->
+        <div class="cs-pcr-tab-content" id="cs-pcr-tab-settings">
+
+            <div class="cs-pcr-card">
+                <div class="cs-pcr-card-header cs-pcr-header-purple">
+                    <span>404 Page</span>
+                    <button type="button" class="cs-pcr-btn cs-pcr-btn-explain"
+                        data-title="Custom 404 Page"
+                        data-body="When enabled, replaces the default WordPress 404 (theme-rendered) response with a clean, self-contained branded page. No theme or page-builder dependency — the page renders even if the active theme is broken. To preview, enable the toggle then visit any URL on this site that does not exist.">
+                        Explain
+                    </button>
+                </div>
+                <div class="cs-pcr-card-body">
+                    <p style="margin-bottom:18px;">Replace the default WordPress 404 page with a clean, self-contained branded page — no theme required.</p>
+                    <div class="cs-pcr-toggle-row">
+                        <label class="cs-pcr-toggle" title="Enable custom 404 page">
+                            <input type="checkbox" id="cs-pcr-custom-404" <?php checked( get_option( CS_PCR_CUSTOM_404_OPTION, 0 ), 1 ); ?>>
+                            <span class="cs-pcr-toggle-slider"></span>
+                        </label>
+                        <span class="cs-pcr-toggle-label">Enable custom 404 page</span>
+                    </div>
+                    <p class="cs-pcr-note" style="margin-top:14px;">To preview: enable the toggle, then visit any URL on this site that does not exist — e.g. <code><?php echo esc_html( rtrim( home_url( '/' ), '/' ) ); ?>/this-page-does-not-exist</code></p>
+                    <div id="cs-pcr-settings-message" style="margin-top:12px;display:none;"></div>
                 </div>
             </div>
 
