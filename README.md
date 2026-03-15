@@ -1,8 +1,10 @@
-# CloudScale Plugin Crash Recovery
+# WordPress Plugin Crash Recovery
 
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-blue) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-purple) ![License](https://img.shields.io/badge/License-GPLv2-green) ![Version](https://img.shields.io/badge/Version-1.0.0-orange)
 
-A WordPress watchdog plugin that automatically detects when your site has crashed and rolls back the most recently modified plugin. A system cron probes every minute — no WordPress required to trigger recovery.
+A WordPress watchdog plugin that automatically detects when your site has crashed and rolls back the most recently modified plugin. A system cron probes every minute — no WordPress required to trigger recovery. Completely free.
+
+No subscriptions. No accounts. No configuration. Single PHP file, drop in and done.
 
 > Full write up: [You Just Uploaded a New Plugin and Your WordPress Site Just Crashed. Now What?](https://andrewbaker.ninja/2026/03/02/you-just-uploaded-a-new-plugin-and-your-wordpress-site-just-crashed-now-what/)
 
