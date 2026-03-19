@@ -9,7 +9,7 @@ helpLib.run({
     docsDir:    process.env.WP_DOCS_DIR,
 
     pluginName: 'CloudScale Crash Recovery',
-    pluginDesc: 'A system-cron-based watchdog that probes your site every minute. If a crash is detected it automatically deactivates and deletes the most recently modified plugin, then re-probes to confirm recovery.',
+    pluginDesc: 'A bad plugin update can take your entire site down in seconds — and if WordPress itself is broken, you cannot log in to fix it. CloudScale Crash Recovery watches your site from outside WordPress, detects crashes within minutes, and automatically rolls back the offending plugin before most visitors even notice. Completely free, no subscription, no premium tier.',
     pageTitle:  'CloudScale Crash Recovery: Online Help',
     pageSlug:   'crash-recovery-help',
     adminUrl:   `${process.env.WP_BASE_URL}/wp-admin/tools.php?page=cloudscale-crash-recovery`,
@@ -22,6 +22,12 @@ helpLib.run({
 
     docs: {
         'watchdog': `
+<div style="background:#f0f9ff;border-left:4px solid #0e6b8f;padding:18px 22px;border-radius:0 8px 8px 0;margin-bottom:28px;">
+<h2 style="margin:0 0 10px;font-size:1.3em;color:#0f172a;">Why CloudScale Crash Recovery?</h2>
+<p style="margin:0 0 10px;">Every WordPress site owner has experienced it: you click "Update" on a plugin, the page goes white, and suddenly your site is serving a 500 error to every visitor. Worse, you cannot log into wp-admin to fix it — because WordPress itself is broken.</p>
+<p style="margin:0 0 10px;">CloudScale Crash Recovery watches your site from outside WordPress using your server's system cron. It probes your site every minute. The moment it detects a crash, it automatically deactivates and removes the most recently modified plugin — the most likely cause — and re-probes to confirm recovery. The whole process takes under two minutes.</p>
+<p style="margin:0;"><strong>It is completely free.</strong> No premium version, no upgrade nag, no monthly fee. Install it, configure a system cron entry, and your site has automatic crash recovery running silently in the background.</p>
+</div>
 <p>The <strong>Watchdog Dashboard</strong> shows the real-time status of your automated crash recovery system. The watchdog is a PHP script invoked by a system cron job that makes an HTTP GET request to your site's frontend URL every minute. If the response code is not 200 OK, it triggers the recovery sequence.</p>
 <ul>
 <li><strong>Watchdog status</strong> — <em>Active</em>: the system cron is configured and the watchdog has probed the site within the last 2 minutes. <em>Inactive</em>: no recent probe recorded — check your crontab or see Setup &amp; Configuration.</li>
