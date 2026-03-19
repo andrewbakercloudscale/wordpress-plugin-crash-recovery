@@ -458,7 +458,7 @@ function cs_pcr_delete_path( $path ) {
 function cs_pcr_get_log_tail( $lines = 20 ) {
     if ( ! function_exists( 'shell_exec' ) ) { return []; }
     $log  = CS_PCR_LOG_FILE;
-    $raw  = shell_exec( "tail -n {$lines} " . escapeshellarg( $log ) . ' 2>/dev/null' );
+    $raw  = shell_exec( 'tail -n ' . (int) $lines . ' ' . escapeshellarg( $log ) . ' 2>/dev/null' );
     if ( empty( $raw ) ) { return []; }
     return array_filter( array_map( 'trim', explode( "\n", $raw ) ) );
 }
