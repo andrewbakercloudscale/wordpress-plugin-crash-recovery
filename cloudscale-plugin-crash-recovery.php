@@ -873,7 +873,7 @@ function cs_pcr_ajax_check_config() {
 function cs_pcr_add_menu() {
     add_management_page(
         'CloudScale Crash Recovery',
-        'Crash Recovery',
+        '🌩️ Crash Recovery',
         'manage_options',
         CS_PCR_SLUG,
         'cs_pcr_render_page'
