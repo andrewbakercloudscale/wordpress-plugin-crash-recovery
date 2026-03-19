@@ -1,4 +1,4 @@
-/* CloudScale Plugin Crash Recovery — Admin JS v1.4.7 */
+/* CloudScale Plugin Crash Recovery — Admin JS v1.5.0 */
 (function ($) {
     'use strict';
 
@@ -21,7 +21,7 @@
     // Restore active tab from hash on page load
     (function () {
         var hash = window.location.hash.replace('#tab-', '');
-        var valid = ['checks', 'setup', 'status', 'logs'];
+        var valid = ['checks', 'setup', 'status', 'logs', 'settings'];
         if (hash && valid.indexOf(hash) !== -1) {
             activateTab(hash);
         }
@@ -384,6 +384,32 @@
         } else {
             clearInterval(autoReloadTimer);
         }
+    });
+
+
+    // ── Settings — custom 404 toggle ────────────────────────────────────────
+    // Sync initial state from server value in case PHP and DOM drift.
+    if (parseInt(CS_PCR.custom_404, 10) === 1) {
+        $('#cs-pcr-custom-404').prop('checked', true);
+    }
+
+    $(document).on('change', '#cs-pcr-custom-404', function () {
+        var val = $(this).is(':checked') ? 1 : 0;
+        $.post(CS_PCR.ajax_url, {
+            action:     'cs_pcr_save_settings',
+            nonce:      CS_PCR.nonce,
+            custom_404: val
+        }, function (resp) {
+            var $msg = $('#cs-pcr-settings-message');
+            if (resp.success) {
+                $msg.html('<div class="cs-pcr-summary cs-pcr-summary-pass">\u2705 Setting saved.</div>').show();
+                setTimeout(function () { $msg.fadeOut(400, function () { $msg.empty(); }); }, 2500);
+            } else {
+                $msg.html('<div class="cs-pcr-summary cs-pcr-summary-fail">\u274c Failed to save setting.</div>').show();
+            }
+        }).fail(function () {
+            $('#cs-pcr-settings-message').html('<div class="cs-pcr-summary cs-pcr-summary-fail">\u274c AJAX request failed.</div>').show();
+        });
     });
 
 }(jQuery));

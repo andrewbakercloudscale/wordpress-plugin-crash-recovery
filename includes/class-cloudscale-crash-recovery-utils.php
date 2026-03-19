@@ -10,9 +10,7 @@
  * @since   1.0.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Stateless utility helpers for CloudScale Crash Recovery.

@@ -8,15 +8,15 @@
  * WordPress control.
  *
  * @package CloudScale_Crash_Recovery
- * @since   1.4.7
+ * @since   1.5.0
  */
 
-if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-    exit;
-}
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) { exit; }
 
-// Remove the debug-revert timestamp option.
+// Remove all plugin options.
 delete_option( 'cs_pcr_debug_revert_at' );
+delete_option( 'cs_pcr_custom_404' );
 
 // Clear the WP-Cron safety-net event for debug revert.
 wp_clear_scheduled_hook( 'cs_pcr_revert_debug_hook' );

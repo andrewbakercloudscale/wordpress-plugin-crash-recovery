@@ -590,3 +590,66 @@
     border-bottom: 1px solid rgba(255,255,255,0.04);
     line-height: 1.55;
 }
+
+/* ── Settings — toggle switch ── */
+.cs-pcr-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cs-pcr-toggle {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.cs-pcr-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.cs-pcr-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 26px;
+    transition: background 0.22s ease;
+}
+
+.cs-pcr-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    transition: transform 0.22s ease;
+}
+
+.cs-pcr-toggle input:checked + .cs-pcr-toggle-slider {
+    background: #27ae60;
+}
+
+.cs-pcr-toggle input:checked + .cs-pcr-toggle-slider::before {
+    transform: translateX(22px);
+}
+
+.cs-pcr-toggle input:focus-visible + .cs-pcr-toggle-slider {
+    outline: 2px solid #4a9eff;
+    outline-offset: 2px;
+}
+
+.cs-pcr-toggle-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pcr-text);
+}

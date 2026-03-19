@@ -11,7 +11,7 @@
  * a recovery mechanism in place, you will need SSH or FTP access to remove it.
  */
 
-if (!defined('ABSPATH')) { exit; }
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 // This fires on every request, not just activation.
 // The site is dead the moment this file is loaded.
