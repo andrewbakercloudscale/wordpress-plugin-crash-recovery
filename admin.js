@@ -1,4 +1,4 @@
-/* CloudScale Plugin Crash Recovery — Admin JS v1.5.0 */
+/* CloudScale Plugin Crash Recovery — Admin JS v1.5.2 */
 (function ($) {
     'use strict';
 

@@ -15,13 +15,34 @@ helpLib.run({
     downloadUrl: 'https://andrewninjawordpress.s3.af-south-1.amazonaws.com/cloudscale-plugin-crash-recovery.zip',
     adminUrl:   `${process.env.WP_BASE_URL}/wp-admin/tools.php?page=cloudscale-crash-recovery`,
 
+    pluginFile: `${__dirname}/../cloudscale-plugin-crash-recovery.php`,
+
     sections: [
-        { id: 'watchdog',   label: 'Watchdog Dashboard',    file: 'panel-watchdog.png'   },
-        { id: 'crash-log',  label: 'Crash Log',              file: 'panel-crash-log.png'  },
-        { id: 'setup',      label: 'Setup & Configuration',  file: 'panel-setup.png'      },
+        { id: 'checks',     label: 'Compatibility Checks',   file: 'panel-checks.png',    tab: 'checks'    },
+        { id: 'setup',      label: 'Setup & Configuration',  file: 'panel-setup.png',     tab: 'setup'     },
+        { id: 'watchdog',   label: 'Status & Log',           file: 'panel-watchdog.png',  tab: 'status'    },
+        { id: 'crash-log',  label: 'Logs & Debug',           file: 'panel-crash-log.png', tab: 'logs'      },
+        { id: 'settings',   label: 'Settings',               file: 'panel-settings.png',  tab: 'settings'  },
     ],
 
     docs: {
+        'checks': `
+<p>The <strong>Compatibility Checks</strong> tab runs 10 server-side tests to confirm your instance is ready for the system cron watchdog before you deploy it. Click <strong>Run Compatibility Checks</strong> to execute all checks in one pass.</p>
+<p><strong>What is tested:</strong></p>
+<ul>
+<li><strong>PHP CLI</strong> — verifies that a PHP binary is available at the path the watchdog script will use. Required for WP-CLI calls.</li>
+<li><strong>shell_exec</strong> — confirms the <code>shell_exec()</code> PHP function is not disabled. The watchdog uses it to invoke WP-CLI from within PHP recovery fallbacks.</li>
+<li><strong>curl</strong> — confirms curl is available on the server PATH. The watchdog script probes your site URL using curl directly.</li>
+<li><strong>Probe endpoint</strong> — makes a test HTTP request to your configured probe URL and verifies a 200 response with the <code>CLOUDSCALE_OK</code> marker in the body.</li>
+<li><strong>Plugin directory permissions</strong> — checks that the watchdog can read and modify the <code>wp-content/plugins/</code> directory (needed to identify and delete the crashing plugin).</li>
+<li><strong>WP-CLI</strong> — verifies WP-CLI is installed and executable at the configured path. The watchdog uses <code>wp plugin deactivate</code> and <code>wp plugin delete</code> during recovery.</li>
+<li><strong>Watchdog script presence</strong> — confirms the watchdog shell script has been deployed to <code>/usr/local/bin/cs-crash-watchdog.sh</code> and is executable.</li>
+<li><strong>Cron entry</strong> — checks whether a crontab entry for the watchdog script exists for the web server user.</li>
+<li><strong>Log file</strong> — verifies the log file at <code>/var/log/cloudscale-crash-recovery.log</code> is writable.</li>
+<li><strong>Legacy WP cron</strong> — checks whether <code>DISABLE_WP_CRON</code> is set in <code>wp-config.php</code>. WP-Cron should be disabled on production sites that use a real system cron, to avoid it triggering recovery logic at unexpected times.</li>
+</ul>
+<p>Critical failures (marked in red) must be resolved before the watchdog can protect the site. Warnings (amber) are advisory and will not prevent the watchdog from running, but may reduce its reliability.</p>`,
+
         'watchdog': `
 <div style="background:#f0f9ff;border-left:4px solid #0e6b8f;padding:18px 22px;border-radius:0 8px 8px 0;margin-bottom:28px;">
 <h2 style="margin:0 0 10px;font-size:1.3em;color:#0f172a;">Why CloudScale Crash Recovery?</h2>
@@ -65,5 +86,11 @@ helpLib.run({
 <li><strong>Recovery window</strong> — how recently (in minutes) a plugin must have been modified on disk to be considered the crash culprit. Default: 10 minutes. If you deploy or update plugins frequently, reduce this to 5 minutes to avoid false positives. If you batch-install many plugins at once, increase it to 20–30 minutes.</li>
 <li><strong>Notification email</strong> — the watchdog sends a plain-text email via <code>wp_mail()</code> to this address on every recovery event. Leave blank to disable email notifications. Check your server's mail delivery logs if emails are not arriving: <code>tail -50 /var/log/maillog</code></li>
 </ul>`,
+    },
+        'settings': `
+<p>The <strong>Settings</strong> tab contains miscellaneous options that operate independently of the watchdog.</p>
+<h3>Custom 404 Page</h3>
+<p>When enabled, replaces the default WordPress 404 (theme-rendered) response with a clean, self-contained branded page — with no dependency on the active theme or any page builder. This means the 404 page renders correctly even if the active theme is broken or missing, which is particularly useful during a crash recovery event.</p>
+<p>To preview: enable the toggle, then visit any URL on your site that does not exist (e.g. <code>/this-page-does-not-exist</code>). Disable the toggle to revert to the default theme 404 behaviour.</p>`,
     },
 }).catch(err => { console.error('ERROR:', err.message); process.exit(1); });

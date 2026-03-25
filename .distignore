@@ -1,0 +1,15 @@
+# Source control and system files
+.git
+.gitignore
+.DS_Store
+.claude
+.claude-flow
+.distignore
+
+# Development directories (not needed in the plugin zip)
+repo/
+test-plugin/
+docs/
+
+# Node tooling
+node_modules/
