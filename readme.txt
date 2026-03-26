@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: crash recovery, plugin watchdog, site health, auto-recovery
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.5.2
+Stable tag: 1.5.21
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -22,7 +22,7 @@ CloudScale Crash Recovery is a lightweight watchdog plugin that automatically de
 
 == Changelog ==
 
-= 1.5.2 =
+= 1.5.21 =
 * Added opt-in custom 404 page — clean, self-contained branded page, no theme dependency.
 * Added PHP CLI and curl path fallbacks for FPM environments.
 * Added Settings tab in admin UI.

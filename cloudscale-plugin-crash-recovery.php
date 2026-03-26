@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.5.2
+ * Version:           1.5.21
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.5.2' );
+define( 'CS_PCR_VERSION', '1.5.21' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -122,7 +122,7 @@ function cs_pcr_maybe_probe_endpoint() {
  * Hooked on `template_redirect` at priority 1 so it fires before any theme
  * or page-builder template logic.
  *
- * @since  1.5.2
+ * @since  1.5.21
  * @return void
  */
 function cs_pcr_maybe_custom_404() {
@@ -162,6 +162,10 @@ function cs_pcr_maybe_custom_404() {
     <div class="cs404-dot" style="width:5px;height:5px;top:89%;left:50%;opacity:.25;background:#f57c00;"></div>
     <div class="cs404-dot" style="width:3px;height:3px;top:5%;left:48%;opacity:.35;background:#f57c00;"></div>
 </div>
+<div class="cs404-game-wrap">
+    <p class="cs404-game-label">While you're here&hellip;</p>
+    <canvas id="cs404-game" width="620" height="160" aria-label="404 Runner mini-game"></canvas>
+</div>
 <div class="cs404-wrap">
     <div class="cs404-graphic" aria-hidden="true">
         <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
@@ -186,8 +190,7 @@ function cs_pcr_maybe_custom_404() {
             <circle cx="80" cy="7" r="1.5" fill="#f57c00" opacity=".5"/>
         </svg>
     </div>
-    <div class="cs404-code">404</div>
-    <h1 class="cs404-title"><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
+    <h1 class="cs404-heading">404 <?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
     <p class="cs404-desc"><?php echo esc_html__( "The page you're looking for doesn't exist or may have been moved.", 'cloudscale-crash-recovery' ); ?></p>
     <a href="<?php echo esc_url( $home_url ); ?>" class="cs404-btn">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -198,11 +201,6 @@ function cs_pcr_maybe_custom_404() {
         <p class="cs404-site-name"><?php echo esc_html( $site_name ); ?></p>
         <?php if ( $site_tagline ) : ?><p class="cs404-tagline"><?php echo esc_html( $site_tagline ); ?></p><?php endif; ?>
     </div>
-</div>
-
-<div class="cs404-game-wrap">
-    <p class="cs404-game-label">While you're here&hellip;</p>
-    <canvas id="cs404-game" width="620" height="160" aria-label="404 Runner mini-game"></canvas>
 </div>
 
 <?php echo '<script src="' . esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.js' ) . '"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone 404 exit-page outputs a full HTML document; wp_head()/wp_footer() never run in this exit path ?>
@@ -477,7 +475,7 @@ function cs_pcr_do_revert_debug() {
  * Currently handles the `custom_404` toggle. Requires nonce `cs_pcr_checks`
  * and capability `manage_options`.
  *
- * @since  1.5.2
+ * @since  1.5.21
  * @return void Exits via wp_send_json_success().
  */
 function cs_pcr_ajax_save_settings() {
@@ -1036,7 +1034,7 @@ function cs_pcr_render_page() {
                             <span class="cs-pcr-terminal-label">cs-crash-watchdog.sh</span>
                         </div>
                         <pre class="cs-pcr-terminal" id="cs-pcr-watchdog-script">#!/bin/bash
-# CloudScale Crash Recovery — System Cron Watchdog v1.5.2
+# CloudScale Crash Recovery — System Cron Watchdog v1.5.21
 # Deploy to: /usr/local/bin/cs-crash-watchdog.sh
 # Permissions: chmod +x /usr/local/bin/cs-crash-watchdog.sh
 # Cron (root): * * * * * /usr/local/bin/cs-crash-watchdog.sh

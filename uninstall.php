@@ -8,7 +8,7 @@
  * WordPress control.
  *
  * @package CloudScale_Crash_Recovery
- * @since   1.5.2
+ * @since   1.5.21
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
