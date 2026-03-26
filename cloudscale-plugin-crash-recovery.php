@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.5.21
+ * Version:           1.6.0
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.5.21' );
+define( 'CS_PCR_VERSION', '1.6.0' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -51,7 +51,71 @@ add_action( 'wp_ajax_cs_pcr_disable_debug', 'cs_pcr_ajax_disable_debug' );
 add_action( 'wp_ajax_cs_pcr_check_config',  'cs_pcr_ajax_check_config' );
 add_action( 'cs_pcr_revert_debug_hook',     'cs_pcr_do_revert_debug' );
 add_action( 'template_redirect',            'cs_pcr_maybe_custom_404', 1 );
+add_action( 'rest_api_init',               'cs_pcr_register_hiscore_routes' );
 add_action( 'wp_ajax_cs_pcr_save_settings', 'cs_pcr_ajax_save_settings' );
+
+// ---------------------------------------------------------------------------
+// 404 Runner global high score REST endpoints
+// ---------------------------------------------------------------------------
+
+/**
+ * Register GET + POST /wp-json/cs-pcr/v1/hiscore
+ */
+/**
+ * Register per-game hi-score endpoints.
+ *
+ * GET  /wp-json/cs-pcr/v1/hiscore/{game}  — fetch record for that game
+ * POST /wp-json/cs-pcr/v1/hiscore/{game}  — update record if new score is higher
+ *
+ * {game} must be one of: runner, jetpack, racer, miner
+ */
+function cs_pcr_register_hiscore_routes() {
+	register_rest_route( 'cs-pcr/v1', '/hiscore/(?P<game>runner|jetpack|racer|miner)', array(
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'cs_pcr_rest_get_hiscore',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'game' => array( 'required' => true, 'type' => 'string' ),
+			),
+		),
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'cs_pcr_rest_set_hiscore',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'game'  => array( 'required' => true, 'type' => 'string' ),
+				'score' => array( 'required' => true, 'type' => 'integer', 'minimum' => 1, 'maximum' => 999999 ),
+				'name'  => array( 'required' => true, 'type' => 'string', 'maxLength' => 30 ),
+			),
+		),
+	) );
+}
+
+/** Return the record for one game. */
+function cs_pcr_rest_get_hiscore( WP_REST_Request $request ) {
+	$game = sanitize_key( $request->get_param( 'game' ) );
+	return rest_ensure_response( array(
+		'score' => (int) get_option( 'cs_pcr_hi_score_' . $game, 0 ),
+		'name'  => (string) get_option( 'cs_pcr_hi_name_' . $game, '' ),
+	) );
+}
+
+/** Update the record for one game only if the new score beats the current one. */
+function cs_pcr_rest_set_hiscore( WP_REST_Request $request ) {
+	$game    = sanitize_key( $request->get_param( 'game' ) );
+	$score   = (int) $request->get_param( 'score' );
+	$name    = sanitize_text_field( $request->get_param( 'name' ) );
+	$current = (int) get_option( 'cs_pcr_hi_score_' . $game, 0 );
+
+	if ( $score > $current ) {
+		update_option( 'cs_pcr_hi_score_' . $game, $score, false );
+		update_option( 'cs_pcr_hi_name_'  . $game, $name,  false );
+		return rest_ensure_response( array( 'ok' => true, 'score' => $score, 'name' => $name ) );
+	}
+
+	return rest_ensure_response( array( 'ok' => false, 'score' => $current, 'name' => (string) get_option( 'cs_pcr_hi_name_' . $game, '' ) ) );
+}
 
 // ---------------------------------------------------------------------------
 // Probe endpoint
@@ -122,7 +186,7 @@ function cs_pcr_maybe_probe_endpoint() {
  * Hooked on `template_redirect` at priority 1 so it fires before any theme
  * or page-builder template logic.
  *
- * @since  1.5.21
+ * @since  1.5.27
  * @return void
  */
 function cs_pcr_maybe_custom_404() {
@@ -163,8 +227,30 @@ function cs_pcr_maybe_custom_404() {
     <div class="cs404-dot" style="width:3px;height:3px;top:5%;left:48%;opacity:.35;background:#f57c00;"></div>
 </div>
 <div class="cs404-game-wrap">
-    <p class="cs404-game-label">While you're here&hellip;</p>
-    <canvas id="cs404-game" width="620" height="160" aria-label="404 Runner mini-game"></canvas>
+    <div class="cs404-tabs">
+        <button class="cs404-tab active" data-game="runner">🏃 Runner</button>
+        <button class="cs404-tab" data-game="jetpack">🚀 Jetpack</button>
+        <button class="cs404-tab" data-game="racer">🚗 Racer</button>
+        <button class="cs404-tab" data-game="miner">⛏ Miner</button>
+    </div>
+    <div style="position:relative;display:inline-block;max-width:100%;">
+        <canvas id="cs404-game" width="620" height="280" aria-label="404 Olympics mini-games"></canvas>
+        <div id="cs404-name-overlay" style="display:none;position:absolute;inset:0;z-index:10;background:rgba(13,42,74,0.88);border-radius:10px;flex-direction:column;align-items:center;justify-content:center;gap:14px;box-shadow:inset 0 0 0 2px rgba(245,124,0,0.6);">
+            <p style="font-size:22px;font-weight:900;color:#f57c00;margin:0;">🏆 New High Score!</p>
+            <p style="font-size:14px;color:#cce9fb;margin:0;">Enter your name:</p>
+            <input id="cs404-name-input" type="text" maxlength="20" placeholder="Your name"
+                style="font-size:16px;padding:8px 14px;border:2px solid #f57c00;border-radius:8px;outline:none;text-align:center;width:200px;">
+            <button id="cs404-name-save"
+                style="background:linear-gradient(135deg,#f57c00,#e65100);color:#fff;border:none;border-radius:8px;padding:9px 28px;font-size:15px;font-weight:700;cursor:pointer;">
+                Save
+            </button>
+        </div>
+    </div>
+    <div id="cs404-miner-ctrl" class="cs404-miner-ctrl">
+        <button id="cs404-ml" class="cs404-miner-btn">◀</button>
+        <button id="cs404-mj" class="cs404-miner-btn">▲ Jump</button>
+        <button id="cs404-mr" class="cs404-miner-btn">▶</button>
+    </div>
 </div>
 <div class="cs404-wrap">
     <div class="cs404-graphic" aria-hidden="true">
@@ -203,6 +289,7 @@ function cs_pcr_maybe_custom_404() {
     </div>
 </div>
 
+<?php echo '<script>var CS_PCR_API=' . wp_json_encode( rest_url( 'cs-pcr/v1' ) ) . ';</script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
 <?php echo '<script src="' . esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.js' ) . '"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone 404 exit-page outputs a full HTML document; wp_head()/wp_footer() never run in this exit path ?>
 
 </body>
@@ -475,7 +562,7 @@ function cs_pcr_do_revert_debug() {
  * Currently handles the `custom_404` toggle. Requires nonce `cs_pcr_checks`
  * and capability `manage_options`.
  *
- * @since  1.5.21
+ * @since  1.5.27
  * @return void Exits via wp_send_json_success().
  */
 function cs_pcr_ajax_save_settings() {
@@ -1034,7 +1121,7 @@ function cs_pcr_render_page() {
                             <span class="cs-pcr-terminal-label">cs-crash-watchdog.sh</span>
                         </div>
                         <pre class="cs-pcr-terminal" id="cs-pcr-watchdog-script">#!/bin/bash
-# CloudScale Crash Recovery — System Cron Watchdog v1.5.21
+# CloudScale Crash Recovery — System Cron Watchdog v1.5.27
 # Deploy to: /usr/local/bin/cs-crash-watchdog.sh
 # Permissions: chmod +x /usr/local/bin/cs-crash-watchdog.sh
 # Cron (root): * * * * * /usr/local/bin/cs-crash-watchdog.sh
