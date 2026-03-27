@@ -14,34 +14,79 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 var ctx=c.getContext('2d'),W=c.width,H=c.height;
 
-/* ── Per-game hi scores ─────────────────────────── */
+/* ── Per-game leaderboards (top 10) ─────────────── */
 var GNAMES=['runner','jetpack','racer','miner','asteroids'];
-var hiData={};
+var lbData={};
 GNAMES.forEach(function(g){
-    hiData[g]={s:parseInt(localStorage.getItem('cs404_hi_'+g)||'0',10),n:localStorage.getItem('cs404_hi_name_'+g)||''};
+    var raw=localStorage.getItem('cs404_lb_'+g);
+    lbData[g]=raw?JSON.parse(raw):[];
 });
+function lbInsert(game,score,name){
+    if(!score||score<=0)return false;
+    var lb=lbData[game];
+    if(lb.length>=10&&score<=lb[9].s)return false;
+    lb.push({s:score,n:name||''});
+    lb.sort(function(a,b){return b.s-a.s;});
+    if(lb.length>10)lb.length=10;
+    localStorage.setItem('cs404_lb_'+game,JSON.stringify(lb));
+    return true;
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderLeaderboard(game){
+    var panel=document.getElementById('cs404-lb-body');
+    var title=document.getElementById('cs404-lb-title');
+    if(!panel)return;
+    var gname={runner:'Runner',jetpack:'Jetpack',racer:'Racer',miner:'Miner',asteroids:'Asteroids'};
+    if(title)title.textContent='\uD83C\uDFC6 '+(gname[game]||game)+' \u2014 Top 10';
+    var lb=lbData[game];
+    if(!lb||lb.length===0){panel.innerHTML='<p class="cs404-lb-empty">No scores yet \u2014 be the first!</p>';return;}
+    var html='',medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
+    for(var i=0;i<lb.length;i++){
+        var medal=i<3?medals[i]:(i+1)+'.';
+        html+='<div class="cs404-lb-row'+(i===0?' cs404-lb-row-gold':'')+'">'+
+            '<span class="cs404-lb-rank">'+medal+'</span>'+
+            '<span class="cs404-lb-name">'+escHtml(lb[i].n||'Anonymous')+'</span>'+
+            '<span class="cs404-lb-score">'+String(lb[i].s).padStart(5,'0')+'</span>'+
+            '</div>';
+    }
+    panel.innerHTML=html;
+}
 if(typeof CS_PCR_API!=='undefined'){
     GNAMES.forEach(function(g){
         fetch(CS_PCR_API+'/hiscore/'+g)
             .then(function(r){return r.json();})
-            .then(function(d){if(d.score>hiData[g].s){hiData[g].s=d.score;hiData[g].n=d.name||'';} })
+            .then(function(d){
+                if(d.leaderboard&&Array.isArray(d.leaderboard)){
+                    d.leaderboard.forEach(function(e){lbInsert(g,e.score,e.name);});
+                    renderLeaderboard(currentGame);
+                }
+            })
             .catch(function(){});
     });
 }
 
 /* ── Name overlay ───────────────────────────────── */
-var namePending=false,pendingGame='runner';
+var namePending=false,pendingGame='runner',pendingScore=0;
 var saveBtn=document.getElementById('cs404-name-save');
 var nameInput=document.getElementById('cs404-name-input');
 var nameOverlay=document.getElementById('cs404-name-overlay');
 function saveName(){
     var n=(nameInput?nameInput.value.trim():'')||'Anonymous';
-    var g=pendingGame;
-    hiData[g].n=n;
-    localStorage.setItem('cs404_hi_name_'+g,n);
+    var g=pendingGame,s=pendingScore;
+    lbInsert(g,s,n);
+    renderLeaderboard(g);
     if(typeof CS_PCR_API!=='undefined'){
         fetch(CS_PCR_API+'/hiscore/'+g,{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({game:g,score:hiData[g].s,name:n})}).catch(function(){});
+            body:JSON.stringify({game:g,score:s,name:n})})
+            .then(function(r){return r.json();})
+            .then(function(d){
+                if(d.leaderboard&&Array.isArray(d.leaderboard)){
+                    lbData[g]=d.leaderboard.map(function(e){return{s:e.score,n:e.name};});
+                    localStorage.setItem('cs404_lb_'+g,JSON.stringify(lbData[g]));
+                    renderLeaderboard(g);
+                }
+            })
+            .catch(function(){});
     }
     if(nameOverlay)nameOverlay.style.display='none';
     if(nameInput)nameInput.value='';
@@ -51,15 +96,18 @@ if(saveBtn)saveBtn.addEventListener('click',saveName);
 if(nameInput)nameInput.addEventListener('keydown',function(e){if(e.key==='Enter')saveName();});
 
 function checkNewHi(game,score){
-    if(score>hiData[game].s){
-        hiData[game].s=score;
-        localStorage.setItem('cs404_hi_'+game,score);
-        namePending=true;pendingGame=game;
-        burstFireworks();
-        setTimeout(function(){if(nameOverlay)nameOverlay.style.display='flex';if(nameInput)nameInput.focus();},700);
-        return true;
-    }
-    return false;
+    if(score<=0)return 0;
+    var lb=lbData[game];
+    var qualifies=lb.length<10||score>lb[lb.length-1].s;
+    if(!qualifies)return 0;
+    var rank=lb.length+1;
+    for(var i=0;i<lb.length;i++){if(score>lb[i].s){rank=i+1;break;}}
+    pendingScore=score;pendingGame=game;namePending=true;
+    var hd=document.querySelector('#cs404-name-overlay p:first-child');
+    if(hd)hd.textContent=rank===1?'\uD83C\uDFC6 New Record!':'\uD83C\uDFC6 Top 10 Entry!';
+    burstFireworks();
+    setTimeout(function(){if(nameOverlay)nameOverlay.style.display='flex';if(nameInput)nameInput.focus();},700);
+    return rank;
 }
 
 /* ── Particles ──────────────────────────────────── */
@@ -90,11 +138,11 @@ function drawParticles(){
 
 /* ── Shared overlays ────────────────────────────── */
 function drawHiPanel(game){
-    var h=hiData[game];
+    var lb=lbData[game];
     ctx.save();ctx.font='bold 12px monospace';
-    if(h.s>0){
+    if(lb.length>0&&lb[0].s>0){
         ctx.fillStyle='#f57c00';ctx.textAlign='left';
-        ctx.fillText('\uD83C\uDFC6 '+h.n+' \u2014 '+h.s,10,18);
+        ctx.fillText('\uD83C\uDFC6 '+(lb[0].n||'Anonymous')+' \u2014 '+lb[0].s,10,18);
     }
     ctx.restore();
 }
@@ -102,7 +150,8 @@ function drawScore(score){
     ctx.save();ctx.font='bold 12px monospace';ctx.fillStyle='#0d2a4a';ctx.textAlign='right';
     ctx.fillText(String(score).padStart(5,'0'),W-10,18);ctx.restore();
 }
-function drawGameOver(score,isNew){
+function drawGameOver(score,rank){
+    var isNew=rank>0;
     var bh=isNew?86:62;
     ctx.fillStyle='rgba(204,233,251,0.92)';
     ctx.beginPath();ctx.roundRect(W/2-125,H/2-34,250,bh,8);ctx.fill();
@@ -112,7 +161,8 @@ function drawGameOver(score,isNew){
     ctx.fillStyle='#0d2a4a';ctx.font='bold 15px monospace';ctx.fillText('GAME OVER',W/2,H/2-14);
     ctx.font='12px monospace';ctx.fillStyle='#6b7280';ctx.fillText('Score: '+score,W/2,H/2+6);
     if(isNew){
-        ctx.fillStyle='#f57c00';ctx.font='bold 13px monospace';ctx.fillText('\uD83C\uDFC6 NEW HIGH SCORE!',W/2,H/2+26);
+        var msg=rank===1?'\uD83C\uDFC6 NEW RECORD!':'\uD83C\uDFC6 TOP 10 (#'+rank+')!';
+        ctx.fillStyle='#f57c00';ctx.font='bold 13px monospace';ctx.fillText(msg,W/2,H/2+26);
         ctx.font='10px monospace';ctx.fillStyle='#3a6080';ctx.fillText('SPACE or TAP to retry',W/2,H/2+46);
     } else {
         ctx.font='10px monospace';ctx.fillStyle='#3a6080';ctx.fillText('SPACE or TAP to retry',W/2,H/2+26);
@@ -120,11 +170,11 @@ function drawGameOver(score,isNew){
 }
 function drawWelcome(title,sub){
     ctx.save();ctx.textAlign='center';
-    var h=hiData[currentGame];
-    if(h.s>0){
+    var lb=lbData[currentGame];
+    if(lb.length>0&&lb[0].s>0){
         ctx.fillStyle='rgba(13,42,74,0.72)';ctx.beginPath();ctx.roundRect(W/2-160,H/2-62,320,120,8);ctx.fill();
         ctx.fillStyle='#f59e0b';ctx.font='bold 13px monospace';ctx.fillText('\uD83C\uDFC6 Record Holder',W/2,H/2-40);
-        ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(h.n+' \u2014 '+h.s,W/2,H/2-18);
+        ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText((lb[0].n||'Anonymous')+' \u2014 '+lb[0].s,W/2,H/2-18);
         ctx.fillStyle='#cce9fb';ctx.font='11px monospace';ctx.fillText(sub,W/2,H/2+4);
         ctx.fillStyle='#f57c00';ctx.font='bold 13px monospace';ctx.fillText('SPACE or TAP to play',W/2,H/2+28);
     } else {
@@ -876,6 +926,7 @@ document.querySelectorAll('.cs404-tab').forEach(function(tab){
         asKeys.left=false;asKeys.right=false;asKeys.up=false;asKeys.shoot=false;
         if(mcCtrl)mcCtrl.style.display=currentGame==='miner'?'flex':'none';
         if(asCtrl)asCtrl.style.display=currentGame==='asteroids'?'flex':'none';
+        renderLeaderboard(currentGame);
     });
 });
 
@@ -889,5 +940,6 @@ function loop(){
     updateParticles();
     requestAnimationFrame(loop);
 }
+renderLeaderboard(currentGame);
 loop();
 })();

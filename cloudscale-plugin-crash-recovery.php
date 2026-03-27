@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.3
+ * Version:           1.6.5
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.3' );
+define( 'CS_PCR_VERSION', '1.6.5' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -92,29 +92,45 @@ function cs_pcr_register_hiscore_routes() {
 	) );
 }
 
-/** Return the record for one game. */
+/** Return the top-10 leaderboard for one game. */
 function cs_pcr_rest_get_hiscore( WP_REST_Request $request ) {
 	$game = sanitize_key( $request->get_param( 'game' ) );
-	return rest_ensure_response( array(
-		'score' => (int) get_option( 'cs_pcr_hi_score_' . $game, 0 ),
-		'name'  => (string) get_option( 'cs_pcr_hi_name_' . $game, '' ),
-	) );
+	$raw  = get_option( 'cs_pcr_leaderboard_' . $game, '' );
+	$lb   = $raw ? json_decode( $raw, true ) : array();
+	if ( ! is_array( $lb ) ) {
+		$lb = array();
+	}
+	// Migrate legacy single hi-score entry if leaderboard is empty.
+	if ( empty( $lb ) ) {
+		$old_score = (int) get_option( 'cs_pcr_hi_score_' . $game, 0 );
+		$old_name  = (string) get_option( 'cs_pcr_hi_name_' . $game, '' );
+		if ( $old_score > 0 ) {
+			$lb = array( array( 'score' => $old_score, 'name' => $old_name ) );
+		}
+	}
+	return rest_ensure_response( array( 'leaderboard' => $lb ) );
 }
 
-/** Update the record for one game only if the new score beats the current one. */
+/** Insert a score into the top-10 leaderboard for one game. */
 function cs_pcr_rest_set_hiscore( WP_REST_Request $request ) {
-	$game    = sanitize_key( $request->get_param( 'game' ) );
-	$score   = (int) $request->get_param( 'score' );
-	$name    = sanitize_text_field( $request->get_param( 'name' ) );
-	$current = (int) get_option( 'cs_pcr_hi_score_' . $game, 0 );
-
-	if ( $score > $current ) {
-		update_option( 'cs_pcr_hi_score_' . $game, $score, false );
-		update_option( 'cs_pcr_hi_name_'  . $game, $name,  false );
-		return rest_ensure_response( array( 'ok' => true, 'score' => $score, 'name' => $name ) );
+	$game  = sanitize_key( $request->get_param( 'game' ) );
+	$score = (int) $request->get_param( 'score' );
+	$name  = sanitize_text_field( $request->get_param( 'name' ) );
+	$raw   = get_option( 'cs_pcr_leaderboard_' . $game, '' );
+	$lb    = $raw ? json_decode( $raw, true ) : array();
+	if ( ! is_array( $lb ) ) {
+		$lb = array();
 	}
-
-	return rest_ensure_response( array( 'ok' => false, 'score' => $current, 'name' => (string) get_option( 'cs_pcr_hi_name_' . $game, '' ) ) );
+	// Qualify: fewer than 10 entries, or score beats the lowest entry.
+	$lowest = isset( $lb[9] ) ? (int) $lb[9]['score'] : 0;
+	if ( count( $lb ) >= 10 && $score <= $lowest ) {
+		return rest_ensure_response( array( 'ok' => false, 'leaderboard' => $lb ) );
+	}
+	$lb[] = array( 'score' => $score, 'name' => $name );
+	usort( $lb, function ( $a, $b ) { return (int) $b['score'] - (int) $a['score']; } );
+	$lb = array_slice( $lb, 0, 10 );
+	update_option( 'cs_pcr_leaderboard_' . $game, wp_json_encode( $lb ), false );
+	return rest_ensure_response( array( 'ok' => true, 'leaderboard' => $lb ) );
 }
 
 // ---------------------------------------------------------------------------
@@ -257,6 +273,14 @@ function cs_pcr_maybe_custom_404() {
         <button id="cs404-asu" class="cs404-miner-btn">▲ Thrust</button>
         <button id="cs404-ass" class="cs404-miner-btn">● Shoot</button>
         <button id="cs404-asr" class="cs404-miner-btn">▶</button>
+    </div>
+    <div id="cs404-lb-panel">
+        <div class="cs404-lb-header">
+            <span id="cs404-lb-title">🏆 Runner — Top 10</span>
+        </div>
+        <div id="cs404-lb-body">
+            <p class="cs404-lb-empty">No scores yet — be the first!</p>
+        </div>
     </div>
 </div>
 <div class="cs404-wrap">
