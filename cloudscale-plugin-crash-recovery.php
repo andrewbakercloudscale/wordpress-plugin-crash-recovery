@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.15
+ * Version:           1.6.16
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.15' );
+define( 'CS_PCR_VERSION', '1.6.16' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -123,11 +123,11 @@ function cs_pcr_rest_set_hiscore( WP_REST_Request $request ) {
 
 	// Per-game score caps — max achievable in a real session.
 	$score_caps = array(
-		'runner'    => 20000,
-		'jetpack'   => 500,
-		'racer'     => 20000,
+		'runner'    => 999999,
+		'jetpack'   => 999999,
+		'racer'     => 999999,
 		'miner'     => 2000,
-		'asteroids' => 30000,
+		'asteroids' => 999999,
 	);
 	if ( isset( $score_caps[ $game ] ) && $score > $score_caps[ $game ] ) {
 		return new WP_Error( 'score_invalid', __( 'Score exceeds maximum for this game.', 'cloudscale-crash-recovery' ), array( 'status' => 422 ) );

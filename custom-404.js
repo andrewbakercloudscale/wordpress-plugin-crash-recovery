@@ -49,7 +49,7 @@ function renderLeaderboard(game){
         html+='<div class="cs404-lb-row'+(i===0?' cs404-lb-row-gold':'')+'">'+
             '<span class="cs404-lb-rank">'+medal+'</span>'+
             '<span class="cs404-lb-name">'+escHtml(lb[i].n||'Anonymous')+'</span>'+
-            '<span class="cs404-lb-score">'+String(lb[i].s).padStart(5,'0')+'</span>'+
+            '<span class="cs404-lb-score">'+String(lb[i].s).padStart(6,'0')+'</span>'+
             '</div>';
     }
     panel.innerHTML=html;
@@ -153,7 +153,7 @@ function drawHiPanel(game){
 }
 function drawScore(score){
     ctx.save();ctx.font='bold 12px monospace';ctx.fillStyle='#0d2a4a';ctx.textAlign='right';
-    ctx.fillText(String(score).padStart(5,'0'),W-10,18);ctx.restore();
+    ctx.fillText(String(score).padStart(6,'0'),W-10,18);ctx.restore();
 }
 function drawGameOver(score,rank){
     var isNew=rank>0;
@@ -202,7 +202,7 @@ function drawWelcome(title,sub){
             ctx.textAlign='left';
             ctx.fillText(medal+' '+(lb[i].n||'Anonymous').substring(0,18),W/2-180,ey);
             ctx.textAlign='right';
-            ctx.fillText(String(lb[i].s).padStart(5,'0'),W/2+180,ey);
+            ctx.fillText(String(lb[i].s).padStart(6,'0'),W/2+180,ey);
         }
         // play prompt
         ctx.textAlign='center';
@@ -376,15 +376,16 @@ function jpUpdate(){
     if(JP.py<8||JP.py>H-8){jpDie();return;}
     JP.next--;
     if(JP.next<=0){
-        var gy=36+Math.floor(Math.random()*(H-JP_GAP-60));
-        JP.obs.push({x:W,gy:gy,done:false});JP.next=130+Math.floor(Math.random()*50);
+        var jpGap=Math.max(62,JP_GAP-Math.floor(JP.pipes/10)*3);
+        var gy=36+Math.floor(Math.random()*(H-jpGap-60));
+        JP.obs.push({x:W,gy:gy,gap:jpGap,done:false});JP.next=130+Math.floor(Math.random()*50);
     }
     for(var i=JP.obs.length-1;i>=0;i--){
         JP.obs[i].x-=JP.spd;
         if(!JP.obs[i].done&&JP.obs[i].x+JP_OBW<80){JP.obs[i].done=true;JP.pipes++;}
         if(JP.obs[i].x+JP_OBW<0){JP.obs.splice(i,1);continue;}
         if(80+9>JP.obs[i].x&&80-9<JP.obs[i].x+JP_OBW){
-            if(JP.py-9<JP.obs[i].gy||JP.py+9>JP.obs[i].gy+JP_GAP){jpDie();return;}
+            if(JP.py-9<JP.obs[i].gy||JP.py+9>JP.obs[i].gy+JP.obs[i].gap){jpDie();return;}
         }
     }
 }
@@ -399,8 +400,8 @@ function jpDraw(){
         var o=JP.obs[i];
         ctx.fillStyle='#15803d';ctx.beginPath();ctx.roundRect(o.x,0,JP_OBW,o.gy,4);ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(o.x+4,0,8,o.gy);
-        ctx.fillStyle='#15803d';ctx.beginPath();ctx.roundRect(o.x,o.gy+JP_GAP,JP_OBW,H-o.gy-JP_GAP,4);ctx.fill();
-        ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(o.x+4,o.gy+JP_GAP,8,H-o.gy-JP_GAP);
+        ctx.fillStyle='#15803d';ctx.beginPath();ctx.roundRect(o.x,o.gy+o.gap,JP_OBW,H-o.gy-o.gap,4);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(o.x+4,o.gy+o.gap,8,H-o.gy-o.gap);
     }
     var py=JP.py;
     if(JP.run&&JP.vy<0){
@@ -423,10 +424,10 @@ function jpDraw(){
 var RD_X=Math.floor((W-360)/2),RD_W=360,LN_W=120;
 var LNS=[RD_X+60,RD_X+180,RD_X+300];
 var RC_COLS=['#dc2626','#2563eb','#16a34a','#d97706','#7c3aed','#db2777'];
-var RC={run:false,over:false,score:0,fr:0,spd:5,lane:1,tx:0,cx:0,cars:[],next:40,dash:0,newHi:false};
+var RC={run:false,over:false,score:0,fr:0,spd:3.5,lane:1,tx:0,cx:0,cars:[],next:60,dash:0,newHi:false};
 RC.tx=LNS[1];RC.cx=LNS[1];
 function rcReset(){
-    RC.lane=1;RC.tx=LNS[1];RC.cx=LNS[1];RC.cars=[];RC.score=0;RC.fr=0;RC.spd=5;RC.next=40;RC.dash=0;
+    RC.lane=1;RC.tx=LNS[1];RC.cx=LNS[1];RC.cars=[];RC.score=0;RC.fr=0;RC.spd=3.5;RC.next=60;RC.dash=0;
     RC.newHi=false;namePending=false;particles=[];
     if(nameOverlay)nameOverlay.style.display='none';RC.run=true;RC.over=false;
 }
@@ -440,13 +441,13 @@ function rcMove(dir){
 function rcDie(){if(RC.over)return;RC.over=true;RC.run=false;RC.newHi=checkNewHi('racer',RC.score);}
 function rcUpdate(){
     if(!RC.run||RC.over)return;
-    RC.fr++;RC.score++;RC.spd=5+Math.floor(RC.score/400)*0.5;
+    RC.fr++;RC.score++;RC.spd=3.5+Math.floor(RC.score/600)*0.4;
     RC.dash=(RC.dash+RC.spd*2)%40;RC.cx+=(RC.tx-RC.cx)*0.18;
     RC.next--;
     if(RC.next<=0){
         var ln=Math.floor(Math.random()*3);
         RC.cars.push({x:LNS[ln],y:-50,col:RC_COLS[Math.floor(Math.random()*RC_COLS.length)]});
-        RC.next=36+Math.floor(Math.random()*36);
+        RC.next=55+Math.floor(Math.random()*40);
     }
     for(var i=RC.cars.length-1;i>=0;i--){
         RC.cars[i].y+=RC.spd*2;
