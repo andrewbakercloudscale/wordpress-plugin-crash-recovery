@@ -81,7 +81,7 @@ function saveName(){
     lbInsert(g,s,n);
     renderLeaderboard(g);
     if(typeof CS_PCR_API!=='undefined'){
-        fetch(CS_PCR_API+'/hiscore/'+g,{method:'POST',headers:{'Content-Type':'application/json'},
+        fetch(CS_PCR_API+'/hiscore/'+g,{method:'POST',headers:{'Content-Type':'application/json','X-WP-Score-Nonce':typeof CS_PCR_SCORE_NONCE!=='undefined'?CS_PCR_SCORE_NONCE:''},
             body:JSON.stringify({game:g,score:s,name:n})})
             .then(function(r){return r.json();})
             .then(function(d){
@@ -926,8 +926,8 @@ c.addEventListener('click',function(e){
 document.addEventListener('touchstart',function(e){
     var t=e.target;
     if(t.tagName==='A'||t.tagName==='BUTTON'||t.tagName==='INPUT')return;
-    var inCanvas=(t===c);
-    if(currentGame==='racer'&&inCanvas){
+    if(t!==c)return; // only intercept taps directly on the canvas
+    if(currentGame==='racer'){
         var r=c.getBoundingClientRect(),cx=e.touches[0].clientX-r.left;
         e.preventDefault();if(cx<W/2)rcMove('l');else rcMove('r');
     } else if(currentGame==='miner'){

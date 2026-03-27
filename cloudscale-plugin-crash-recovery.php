@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.9
+ * Version:           1.6.10
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.9' );
+define( 'CS_PCR_VERSION', '1.6.10' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -113,6 +113,10 @@ function cs_pcr_rest_get_hiscore( WP_REST_Request $request ) {
 
 /** Insert a score into the top-10 leaderboard for one game. */
 function cs_pcr_rest_set_hiscore( WP_REST_Request $request ) {
+	$nonce = $request->get_header( 'x_wp_score_nonce' );
+	if ( ! $nonce || ! wp_verify_nonce( sanitize_text_field( $nonce ), 'cs_pcr_score_post' ) ) {
+		return new WP_Error( 'forbidden', __( 'Invalid nonce.', 'cloudscale-crash-recovery' ), array( 'status' => 403 ) );
+	}
 	$game  = sanitize_key( $request->get_param( 'game' ) );
 	$score = (int) $request->get_param( 'score' );
 	$name  = sanitize_text_field( $request->get_param( 'name' ) );
@@ -249,6 +253,9 @@ function cs_pcr_maybe_custom_404() {
     <div class="cs404-dot" style="width:3px;height:3px;top:5%;left:48%;opacity:.35;background:#f57c00;"></div>
 </div>
 <div class="cs404-game-wrap">
+    <div class="cs404-game-topbar">
+        <a href="<?php echo esc_url( $home_url ); ?>" class="cs404-home-btn">&#8592; Home</a>
+    </div>
     <div class="cs404-tabs">
         <button class="cs404-tab active" data-game="runner">🏃 Runner</button>
         <button class="cs404-tab" data-game="jetpack">🚀 Jetpack</button>
@@ -326,7 +333,7 @@ function cs_pcr_maybe_custom_404() {
     </div>
 </div>
 
-<?php echo '<script>var CS_PCR_API=' . wp_json_encode( rest_url( 'cs-pcr/v1' ) ) . ';</script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
+<?php echo '<script>var CS_PCR_API=' . wp_json_encode( rest_url( 'cs-pcr/v1' ) ) . ';var CS_PCR_SCORE_NONCE=' . wp_json_encode( wp_create_nonce( 'cs_pcr_score_post' ) ) . ';</script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
 <?php echo '<script src="' . esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.js' ) . '?ver=' . CS_PCR_VERSION . '.' . filemtime( plugin_dir_path( __FILE__ ) . 'custom-404.js' ) . '"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone 404 exit-page outputs a full HTML document; wp_head()/wp_footer() never run in this exit path ?>
 
 </body>
