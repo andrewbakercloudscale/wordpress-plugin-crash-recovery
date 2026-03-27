@@ -372,7 +372,7 @@ function jpDie(){if(JP.over)return;JP.over=true;JP.run=false;JP.newHi=checkNewHi
 function jpUpdate(){
     if(!JP.run||JP.over)return;
     JP.fr++;JP.score++;JP.spd=2.4+Math.floor(JP.score/500)*0.25;
-    JP.vy+=0.32;JP.py+=JP.vy;
+    JP.vy+=0.22;JP.py+=JP.vy;
     if(JP.py<8||JP.py>H-8){jpDie();return;}
     JP.next--;
     if(JP.next<=0){

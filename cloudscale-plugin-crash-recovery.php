@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.14
+ * Version:           1.6.15
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.14' );
+define( 'CS_PCR_VERSION', '1.6.15' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
