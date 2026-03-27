@@ -59,8 +59,8 @@ if(typeof CS_PCR_API!=='undefined'){
         fetch(CS_PCR_API+'/hiscore/'+g)
             .then(function(r){return r.json();})
             .then(function(d){
-                if(d.leaderboard&&Array.isArray(d.leaderboard)&&d.leaderboard.length>0){
-                    // Server is authoritative — replace local data outright
+                if(d.leaderboard&&Array.isArray(d.leaderboard)){
+                    // Server is always authoritative — replace local even if empty
                     lbData[g]=d.leaderboard.map(function(e){return{s:e.score,n:e.name};});
                     localStorage.setItem('cs404_lb_'+g,JSON.stringify(lbData[g]));
                     renderLeaderboard(currentGame);
