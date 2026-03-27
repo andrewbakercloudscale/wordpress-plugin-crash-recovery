@@ -229,7 +229,7 @@ function cs_pcr_maybe_custom_404() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?> &mdash; <?php echo esc_html( $site_name ); ?></title>
-<link rel="stylesheet" href="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.css' ); ?>">
+<link rel="stylesheet" href="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.css' ) . '?ver=' . CS_PCR_VERSION . '.' . filemtime( plugin_dir_path( __FILE__ ) . 'custom-404.css' ); ?>">
 </head>
 <body>
 <div class="cs404-dots" aria-hidden="true">
@@ -321,7 +321,7 @@ function cs_pcr_maybe_custom_404() {
 </div>
 
 <?php echo '<script>var CS_PCR_API=' . wp_json_encode( rest_url( 'cs-pcr/v1' ) ) . ';</script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
-<?php echo '<script src="' . esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.js' ) . '"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone 404 exit-page outputs a full HTML document; wp_head()/wp_footer() never run in this exit path ?>
+<?php echo '<script src="' . esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.js' ) . '?ver=' . CS_PCR_VERSION . '.' . filemtime( plugin_dir_path( __FILE__ ) . 'custom-404.js' ) . '"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- standalone 404 exit-page outputs a full HTML document; wp_head()/wp_footer() never run in this exit path ?>
 
 </body>
 </html>
