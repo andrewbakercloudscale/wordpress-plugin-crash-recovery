@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.0
+ * Version:           1.6.3
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.0' );
+define( 'CS_PCR_VERSION', '1.6.3' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -70,7 +70,7 @@ add_action( 'wp_ajax_cs_pcr_save_settings', 'cs_pcr_ajax_save_settings' );
  * {game} must be one of: runner, jetpack, racer, miner
  */
 function cs_pcr_register_hiscore_routes() {
-	register_rest_route( 'cs-pcr/v1', '/hiscore/(?P<game>runner|jetpack|racer|miner)', array(
+	register_rest_route( 'cs-pcr/v1', '/hiscore/(?P<game>runner|jetpack|racer|miner|asteroids)', array(
 		array(
 			'methods'             => 'GET',
 			'callback'            => 'cs_pcr_rest_get_hiscore',
@@ -232,6 +232,7 @@ function cs_pcr_maybe_custom_404() {
         <button class="cs404-tab" data-game="jetpack">🚀 Jetpack</button>
         <button class="cs404-tab" data-game="racer">🚗 Racer</button>
         <button class="cs404-tab" data-game="miner">⛏ Miner</button>
+        <button class="cs404-tab" data-game="asteroids">🌌 Asteroids</button>
     </div>
     <div style="position:relative;display:inline-block;max-width:100%;">
         <canvas id="cs404-game" width="620" height="280" aria-label="404 Olympics mini-games"></canvas>
@@ -250,6 +251,12 @@ function cs_pcr_maybe_custom_404() {
         <button id="cs404-ml" class="cs404-miner-btn">◀</button>
         <button id="cs404-mj" class="cs404-miner-btn">▲ Jump</button>
         <button id="cs404-mr" class="cs404-miner-btn">▶</button>
+    </div>
+    <div id="cs404-asteroids-ctrl" class="cs404-miner-ctrl">
+        <button id="cs404-asl" class="cs404-miner-btn">◀</button>
+        <button id="cs404-asu" class="cs404-miner-btn">▲ Thrust</button>
+        <button id="cs404-ass" class="cs404-miner-btn">● Shoot</button>
+        <button id="cs404-asr" class="cs404-miner-btn">▶</button>
     </div>
 </div>
 <div class="cs404-wrap">
