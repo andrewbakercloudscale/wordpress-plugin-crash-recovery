@@ -867,6 +867,7 @@ function asDraw(){
 /* ── Input ──────────────────────────────────────── */
 var keysDown={};
 document.addEventListener('keydown',function(e){
+    if(e.target&&e.target.tagName==='INPUT')return;
     keysDown[e.code]=true;
     if(currentGame==='miner'){
         if(e.code==='ArrowLeft'||e.code==='KeyA')mmKeys.left=true;
@@ -919,7 +920,7 @@ c.addEventListener('click',function(e){
 });
 document.addEventListener('touchstart',function(e){
     var t=e.target;
-    if(t.tagName==='A'||t.tagName==='BUTTON')return;
+    if(t.tagName==='A'||t.tagName==='BUTTON'||t.tagName==='INPUT')return;
     var inCanvas=(t===c);
     if(currentGame==='racer'&&inCanvas){
         var r=c.getBoundingClientRect(),cx=e.touches[0].clientX-r.left;
