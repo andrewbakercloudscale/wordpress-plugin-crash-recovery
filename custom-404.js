@@ -25,7 +25,10 @@ function lbInsert(game,score,name){
     if(!score||score<=0)return false;
     var lb=lbData[game];
     if(lb.length>=10&&score<=lb[9].s)return false;
-    lb.push({s:score,n:name||''});
+    // Prevent exact duplicate {score, name} entries
+    var n=name||'';
+    for(var i=0;i<lb.length;i++){if(lb[i].s===score&&lb[i].n===n)return false;}
+    lb.push({s:score,n:n});
     lb.sort(function(a,b){return b.s-a.s;});
     if(lb.length>10)lb.length=10;
     localStorage.setItem('cs404_lb_'+game,JSON.stringify(lb));
@@ -56,8 +59,10 @@ if(typeof CS_PCR_API!=='undefined'){
         fetch(CS_PCR_API+'/hiscore/'+g)
             .then(function(r){return r.json();})
             .then(function(d){
-                if(d.leaderboard&&Array.isArray(d.leaderboard)){
-                    d.leaderboard.forEach(function(e){lbInsert(g,e.score,e.name);});
+                if(d.leaderboard&&Array.isArray(d.leaderboard)&&d.leaderboard.length>0){
+                    // Server is authoritative — replace local data outright
+                    lbData[g]=d.leaderboard.map(function(e){return{s:e.score,n:e.name};});
+                    localStorage.setItem('cs404_lb_'+g,JSON.stringify(lbData[g]));
                     renderLeaderboard(currentGame);
                 }
             })

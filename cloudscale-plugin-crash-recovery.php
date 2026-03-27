@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.8
+ * Version:           1.6.9
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.8' );
+define( 'CS_PCR_VERSION', '1.6.9' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -120,6 +120,12 @@ function cs_pcr_rest_set_hiscore( WP_REST_Request $request ) {
 	$lb    = $raw ? json_decode( $raw, true ) : array();
 	if ( ! is_array( $lb ) ) {
 		$lb = array();
+	}
+	// Reject exact duplicate {score, name} entries.
+	foreach ( $lb as $entry ) {
+		if ( (int) $entry['score'] === $score && $entry['name'] === $name ) {
+			return rest_ensure_response( array( 'ok' => false, 'leaderboard' => $lb ) );
+		}
 	}
 	// Qualify: fewer than 10 entries, or score beats the lowest entry.
 	$lowest = isset( $lb[9] ) ? (int) $lb[9]['score'] : 0;
