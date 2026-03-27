@@ -133,18 +133,19 @@ body::before {
     align-items: center;
     gap: 4px;
     padding: 5px 14px;
-    background: rgba(255,255,255,0.4);
-    border: 1.5px solid rgba(42,96,144,0.3);
+    background: linear-gradient(135deg,#f57c00,#e65100);
+    border: 1.5px solid transparent;
     border-radius: 20px;
-    color: #0d2a4a;
+    color: #fff;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245,124,0,0.3);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .cs404-home-btn:hover {
-    background: rgba(255,255,255,0.7);
-    border-color: rgba(42,96,144,0.5);
+    box-shadow: 0 4px 14px rgba(245,124,0,0.45);
+    transform: translateY(-1px);
 }
 /* Game tabs */
 .cs404-tabs {
