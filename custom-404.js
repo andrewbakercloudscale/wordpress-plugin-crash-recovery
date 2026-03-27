@@ -171,12 +171,38 @@ function drawGameOver(score,rank){
 function drawWelcome(title,sub){
     ctx.save();ctx.textAlign='center';
     var lb=lbData[currentGame];
-    if(lb.length>0&&lb[0].s>0){
-        ctx.fillStyle='rgba(13,42,74,0.72)';ctx.beginPath();ctx.roundRect(W/2-160,H/2-62,320,120,8);ctx.fill();
-        ctx.fillStyle='#f59e0b';ctx.font='bold 13px monospace';ctx.fillText('\uD83C\uDFC6 Record Holder',W/2,H/2-40);
-        ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText((lb[0].n||'Anonymous')+' \u2014 '+lb[0].s,W/2,H/2-18);
-        ctx.fillStyle='#cce9fb';ctx.font='11px monospace';ctx.fillText(sub,W/2,H/2+4);
-        ctx.fillStyle='#f57c00';ctx.font='bold 13px monospace';ctx.fillText('SPACE or TAP to play',W/2,H/2+28);
+    var rows=Math.min(lb.length,10);
+    if(rows>0){
+        var bh=48+rows*15+24;
+        var by=Math.max(22,H/2-bh/2);
+        ctx.fillStyle='rgba(13,42,74,0.84)';
+        ctx.beginPath();ctx.roundRect(W/2-195,by,390,bh,8);ctx.fill();
+        ctx.strokeStyle='rgba(245,124,0,0.25)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-195,by,390,bh,8);ctx.stroke();
+        // header
+        ctx.fillStyle='#f59e0b';ctx.font='bold 12px monospace';
+        ctx.fillText('\uD83C\uDFC6 '+title+' \u2014 Leaderboard',W/2,by+15);
+        ctx.fillStyle='rgba(204,233,251,0.6)';ctx.font='9px monospace';
+        ctx.fillText(sub,W/2,by+28);
+        // divider
+        ctx.strokeStyle='rgba(245,124,0,0.2)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(W/2-175,by+35);ctx.lineTo(W/2+175,by+35);ctx.stroke();
+        // entries
+        var medals=['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
+        for(var i=0;i<rows;i++){
+            var ey=by+48+i*15;
+            var medal=i<3?medals[i]:(i+1)+'.';
+            ctx.font=(i===0?'bold ':'')+'10px monospace';
+            ctx.fillStyle=i===0?'#fbbf24':i<3?'#e2e8f0':'#94a3b8';
+            ctx.textAlign='left';
+            ctx.fillText(medal+' '+(lb[i].n||'Anonymous').substring(0,18),W/2-180,ey);
+            ctx.textAlign='right';
+            ctx.fillText(String(lb[i].s).padStart(5,'0'),W/2+180,ey);
+        }
+        // play prompt
+        ctx.textAlign='center';
+        ctx.fillStyle='#f57c00';ctx.font='bold 12px monospace';
+        ctx.fillText('SPACE or TAP to play',W/2,by+bh-8);
     } else {
         ctx.fillStyle='rgba(13,42,74,0.72)';ctx.beginPath();ctx.roundRect(W/2-150,H/2-44,300,88,8);ctx.fill();
         ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.fillText(title,W/2,H/2-16);
