@@ -354,10 +354,10 @@ function rnDraw(){
 /* ═══════════════════════════════════════════════
    GAME 2 — JETPACK (Flappy Bird style)
    ═══════════════════════════════════════════════ */
-var JP_GAP=80,JP_OBW=38;
-var JP={run:false,over:false,score:0,fr:0,spd:3,py:H/2,vy:0,obs:[],next:90,pipes:0,newHi:false};
+var JP_GAP=105,JP_OBW=38;
+var JP={run:false,over:false,score:0,fr:0,spd:2.4,py:H/2,vy:0,obs:[],next:90,pipes:0,newHi:false};
 function jpReset(){
-    JP.py=H/2;JP.vy=0;JP.obs=[];JP.score=0;JP.fr=0;JP.spd=3;JP.next=90;JP.pipes=0;
+    JP.py=H/2;JP.vy=0;JP.obs=[];JP.score=0;JP.fr=0;JP.spd=2.4;JP.next=90;JP.pipes=0;
     JP.newHi=false;namePending=false;particles=[];
     if(nameOverlay)nameOverlay.style.display='none';
     JP.run=true;JP.over=false;
@@ -366,18 +366,18 @@ function jpBoost(){
     if(namePending)return;
     if(!JP.run&&!JP.over){jpReset();return;}
     if(JP.over){jpReset();return;}
-    JP.vy=-5.5;
+    JP.vy=-4.8;
 }
 function jpDie(){if(JP.over)return;JP.over=true;JP.run=false;JP.newHi=checkNewHi('jetpack',JP.pipes);}
 function jpUpdate(){
     if(!JP.run||JP.over)return;
-    JP.fr++;JP.score++;JP.spd=3+Math.floor(JP.score/300)*0.3;
-    JP.vy+=0.4;JP.py+=JP.vy;
+    JP.fr++;JP.score++;JP.spd=2.4+Math.floor(JP.score/500)*0.25;
+    JP.vy+=0.32;JP.py+=JP.vy;
     if(JP.py<8||JP.py>H-8){jpDie();return;}
     JP.next--;
     if(JP.next<=0){
         var gy=36+Math.floor(Math.random()*(H-JP_GAP-60));
-        JP.obs.push({x:W,gy:gy,done:false});JP.next=110+Math.floor(Math.random()*40);
+        JP.obs.push({x:W,gy:gy,done:false});JP.next=130+Math.floor(Math.random()*50);
     }
     for(var i=JP.obs.length-1;i>=0;i--){
         JP.obs[i].x-=JP.spd;
