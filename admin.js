@@ -393,6 +393,36 @@
         $('#cs-pcr-custom-404').prop('checked', true);
     }
 
+    // ── Settings — colour scheme picker ─────────────────────────────────────
+    $(document).on('click', '.cs-pcr-scheme-swatch', function () {
+        $('.cs-pcr-scheme-swatch').removeClass('active');
+        $(this).addClass('active');
+    });
+
+    $(document).on('click', '#cs-pcr-save-scheme', function () {
+        var $btn    = $(this);
+        var scheme  = $('.cs-pcr-scheme-swatch.active').data('scheme') || 'ocean';
+        var $msg    = $('#cs-pcr-scheme-message');
+        $btn.prop('disabled', true).text('Saving…');
+        $.post(CS_PCR.ajax_url, {
+            action:  'cs_pcr_save_settings',
+            nonce:   CS_PCR.nonce,
+            scheme:  scheme,
+            custom_404: $('#cs-pcr-custom-404').is(':checked') ? 1 : 0
+        }, function (resp) {
+            $btn.prop('disabled', false).text('Save Scheme');
+            if (resp.success) {
+                $msg.html('<div class="cs-pcr-summary cs-pcr-summary-pass">\u2705 Scheme saved.</div>').show();
+                setTimeout(function () { $msg.fadeOut(400, function () { $msg.empty(); }); }, 2500);
+            } else {
+                $msg.html('<div class="cs-pcr-summary cs-pcr-summary-fail">\u274c Failed to save.</div>').show();
+            }
+        }).fail(function () {
+            $btn.prop('disabled', false).text('Save Scheme');
+            $msg.html('<div class="cs-pcr-summary cs-pcr-summary-fail">\u274c AJAX request failed.</div>').show();
+        });
+    });
+
     $(document).on('change', '#cs-pcr-custom-404', function () {
         var val = $(this).is(':checked') ? 1 : 0;
         $.post(CS_PCR.ajax_url, {

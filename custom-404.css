@@ -34,11 +34,6 @@ body::before {
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.cs404-graphic {
-    width: 70px; height: 70px;
-    margin: 0 auto 16px;
-    filter: drop-shadow(0 8px 36px rgba(0,100,180,0.18));
-}
 .cs404-heading {
     font-size: clamp(28px, 6vw, 52px);
     font-weight: 900;
@@ -48,7 +43,10 @@ body::before {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 12px;
+    margin: 0 0 10px;
+    text-align: center;
+    width: 100%;
+    max-width: 760px;
 }
 .cs404-desc {
     font-size: 19px;

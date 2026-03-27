@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.16
+ * Version:           1.6.17
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.16' );
+define( 'CS_PCR_VERSION', '1.6.17' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -262,8 +262,10 @@ function cs_pcr_maybe_custom_404() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?> &mdash; <?php echo esc_html( $site_name ); ?></title>
 <link rel="stylesheet" href="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.css' ) . '?ver=' . CS_PCR_VERSION . '.' . filemtime( plugin_dir_path( __FILE__ ) . 'custom-404.css' ); ?>">
+<?php $scheme_css = cs_pcr_404_scheme_css( get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' ) ); if ( $scheme_css ) : ?><style><?php echo $scheme_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- output of cs_pcr_404_scheme_css() contains only pre-validated hex colours and static CSS property names ?></style><?php endif; ?>
 </head>
 <body>
+<h1 class="cs404-heading">404 <?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
 <div class="cs404-dots" aria-hidden="true">
     <div class="cs404-dot" style="width:3px;height:3px;top:11%;left:7%;opacity:.7;"></div>
     <div class="cs404-dot" style="width:2px;height:2px;top:19%;left:86%;opacity:.5;"></div>
@@ -319,30 +321,6 @@ function cs_pcr_maybe_custom_404() {
     </div>
 </div>
 <div class="cs404-wrap">
-    <div class="cs404-graphic" aria-hidden="true">
-        <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <radialGradient id="cs404g" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#f57c00" stop-opacity=".18"/>
-                    <stop offset="100%" stop-color="#f57c00" stop-opacity="0"/>
-                </radialGradient>
-            </defs>
-            <circle cx="80" cy="80" r="76" fill="url(#cs404g)"/>
-            <circle cx="80" cy="80" r="70" fill="none" stroke="#2a6090" stroke-width="1" stroke-dasharray="6 3"/>
-            <circle cx="80" cy="80" r="58" fill="#ddeef8" stroke="#2a6090" stroke-width="2"/>
-            <path d="M80 30 L112 46 L112 86 Q112 112 80 126 Q48 112 48 86 L48 46 Z" fill="#c5e1f5" stroke="#2a6090" stroke-width="1.5"/>
-            <path d="M80 36 L107 50 L107 86 Q107 109 80 122 Q53 109 53 86 L53 50 Z" fill="none" stroke="#4a8ab5" stroke-width="1" opacity=".7"/>
-            <text x="80" y="100" text-anchor="middle" font-size="46" font-weight="900" fill="#f57c00" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">?</text>
-            <circle cx="128" cy="55" r="4" fill="#f57c00" opacity=".38"/>
-            <circle cx="128" cy="55" r="8" fill="none" stroke="#f57c00" stroke-width="1" opacity=".18"/>
-            <circle cx="22" cy="36" r="1.5" fill="#2a6090" opacity=".5"/>
-            <circle cx="140" cy="42" r="1" fill="#2a6090" opacity=".4"/>
-            <circle cx="138" cy="130" r="1.5" fill="#2a6090" opacity=".3"/>
-            <circle cx="20" cy="118" r="1" fill="#2a6090" opacity=".4"/>
-            <circle cx="80" cy="7" r="1.5" fill="#f57c00" opacity=".5"/>
-        </svg>
-    </div>
-    <h1 class="cs404-heading">404 <?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
     <p class="cs404-desc"><?php echo esc_html__( "The page you're looking for doesn't exist or may have been moved.", 'cloudscale-crash-recovery' ); ?></p>
     <a href="<?php echo esc_url( $home_url ); ?>" class="cs404-btn">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -469,10 +447,67 @@ function cs_pcr_get_log_tail( $lines = 20 ) {
 
 define( 'CS_PCR_DEBUG_OPTION',      'cs_pcr_debug_revert_at' );
 define( 'CS_PCR_CUSTOM_404_OPTION', 'cs_pcr_custom_404' );
+define( 'CS_PCR_404_SCHEME_OPTION', 'cs_pcr_404_scheme' );
 define( 'CS_PCR_DEBUG_MINUTES',  30 );
 define( 'CS_PCR_DEBUG_CRON_SCRIPT', '/usr/local/bin/cs-debug-revert.sh' );
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cloudscale-crash-recovery-utils.php';
+
+// ---------------------------------------------------------------------------
+// 404 colour schemes
+// ---------------------------------------------------------------------------
+
+/** Returns the 12 built-in colour scheme definitions. */
+function cs_pcr_get_404_schemes() {
+	return array(
+		'ocean'    => array( 'name' => 'Ocean',    'bg1' => '#cce9fb', 'bg2' => '#a8d8f0', 'acc' => '#f57c00', 'da' => '#e65100', 'text' => '#0d2a4a', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'midnight' => array( 'name' => 'Midnight', 'bg1' => '#0f172a', 'bg2' => '#1e293b', 'acc' => '#60a5fa', 'da' => '#3b82f6', 'text' => '#e2e8f0', 'card' => 'rgba(15,23,42,0.65)',  'dm' => true  ),
+		'forest'   => array( 'name' => 'Forest',   'bg1' => '#d1fae5', 'bg2' => '#a7f3d0', 'acc' => '#059669', 'da' => '#047857', 'text' => '#064e3b', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'sunset'   => array( 'name' => 'Sunset',   'bg1' => '#fff1e6', 'bg2' => '#fde68a', 'acc' => '#ea580c', 'da' => '#c2410c', 'text' => '#7c2d12', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'slate'    => array( 'name' => 'Slate',    'bg1' => '#e2e8f0', 'bg2' => '#cbd5e1', 'acc' => '#7c3aed', 'da' => '#6d28d9', 'text' => '#1e293b', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'rose'     => array( 'name' => 'Rose',     'bg1' => '#fff1f2', 'bg2' => '#fecdd3', 'acc' => '#e11d48', 'da' => '#be123c', 'text' => '#881337', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'emerald'  => array( 'name' => 'Emerald',  'bg1' => '#ecfdf5', 'bg2' => '#d1fae5', 'acc' => '#d97706', 'da' => '#b45309', 'text' => '#064e3b', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'violet'   => array( 'name' => 'Violet',   'bg1' => '#1e1b4b', 'bg2' => '#312e81', 'acc' => '#a78bfa', 'da' => '#7c3aed', 'text' => '#ede9fe', 'card' => 'rgba(49,46,129,0.5)',   'dm' => true  ),
+		'charcoal' => array( 'name' => 'Charcoal', 'bg1' => '#1c1c1e', 'bg2' => '#2c2c2e', 'acc' => '#f57c00', 'da' => '#e65100', 'text' => '#e5e5ea', 'card' => 'rgba(44,44,46,0.6)',    'dm' => true  ),
+		'arctic'   => array( 'name' => 'Arctic',   'bg1' => '#f0fdfa', 'bg2' => '#ccfbf1', 'acc' => '#0d9488', 'da' => '#0f766e', 'text' => '#134e4a', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'copper'   => array( 'name' => 'Copper',   'bg1' => '#fdf6ec', 'bg2' => '#fde8c8', 'acc' => '#b45309', 'da' => '#92400e', 'text' => '#451a03', 'card' => 'rgba(255,255,255,0.45)', 'dm' => false ),
+		'cosmic'   => array( 'name' => 'Cosmic',   'bg1' => '#0a0015', 'bg2' => '#1a0033', 'acc' => '#e879f9', 'da' => '#d946ef', 'text' => '#fae8ff', 'card' => 'rgba(26,0,51,0.5)',     'dm' => true  ),
+	);
+}
+
+/** Builds inline CSS overrides for the chosen scheme (empty string for default). */
+function cs_pcr_404_scheme_css( $key ) {
+	$schemes = cs_pcr_get_404_schemes();
+	if ( ! isset( $schemes[ $key ] ) || 'ocean' === $key ) {
+		return '';
+	}
+	$s    = $schemes[ $key ];
+	$bg1  = esc_attr( $s['bg1'] );
+	$bg2  = esc_attr( $s['bg2'] );
+	$acc  = esc_attr( $s['acc'] );
+	$da   = esc_attr( $s['da'] );
+	$text = esc_attr( $s['text'] );
+	$card = esc_attr( $s['card'] );
+	$css  = "body{background:linear-gradient(160deg,{$bg1} 0%,{$bg2} 100%);color:{$text};}";
+	$css .= ".cs404-heading{background:linear-gradient(135deg,{$acc},{$da});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}";
+	$css .= ".cs404-btn,.cs404-home-btn{background:linear-gradient(135deg,{$acc},{$da});box-shadow:0 4px 24px {$acc}44;}";
+	$css .= ".cs404-btn:hover,.cs404-home-btn:hover{box-shadow:0 6px 28px {$acc}66;}";
+	$css .= ".cs404-tab.active{background:linear-gradient(135deg,{$acc},{$da});box-shadow:0 2px 12px {$acc}44;}";
+	$css .= "#cs404-game{background:{$card};border-color:rgba(128,128,128,0.2);}";
+	$css .= ".cs404-lb-score{color:{$acc};}";
+	$css .= ".cs404-lb-row-gold{background:{$acc}18;}";
+	if ( $s['dm'] ) {
+		$css .= ".cs404-desc,.cs404-site-name,.cs404-tagline{color:{$text};}";
+		$css .= ".cs404-tab{background:rgba(255,255,255,0.08);color:{$text};border-color:rgba(255,255,255,0.1);}";
+		$css .= ".cs404-tab:hover{background:rgba(255,255,255,0.14);}";
+		$css .= ".cs404-miner-btn{background:rgba(255,255,255,0.1);color:{$text};border-color:rgba(255,255,255,0.15);}";
+		$css .= "#cs404-lb-panel{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);}";
+		$css .= ".cs404-lb-header{background:rgba(255,255,255,0.07);color:{$text};}";
+		$css .= ".cs404-lb-name{color:{$text};}.cs404-lb-empty{color:{$text};}";
+		$css .= ".cs404-lb-row{border-bottom-color:rgba(255,255,255,0.07);}";
+	}
+	return $css;
+}
 
 // get_wp_config_path(), debug_is_active() → Cloudscale_Crash_Recovery_Utils.
 
@@ -638,7 +673,15 @@ function cs_pcr_ajax_save_settings() {
     $custom_404 = isset( $_POST['custom_404'] ) ? ( absint( wp_unslash( $_POST['custom_404'] ) ) ? 1 : 0 ) : 0;
     update_option( CS_PCR_CUSTOM_404_OPTION, $custom_404 );
 
-    wp_send_json_success( [ 'custom_404' => $custom_404 ] );
+    if ( isset( $_POST['scheme'] ) ) {
+        $schemes    = cs_pcr_get_404_schemes();
+        $scheme_key = sanitize_key( wp_unslash( $_POST['scheme'] ) );
+        if ( isset( $schemes[ $scheme_key ] ) ) {
+            update_option( CS_PCR_404_SCHEME_OPTION, $scheme_key );
+        }
+    }
+
+    wp_send_json_success( [ 'custom_404' => $custom_404, 'scheme' => get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' ) ] );
 }
 
 // ---------------------------------------------------------------------------
@@ -911,6 +954,7 @@ function cs_pcr_enqueue_assets( $hook ) {
         'debug_active'    => Cloudscale_Crash_Recovery_Utils::debug_is_active() ? 1 : 0,
         'debug_revert_at' => (int) get_option( CS_PCR_DEBUG_OPTION, 0 ),
         'custom_404'      => get_option( CS_PCR_CUSTOM_404_OPTION, 0 ) ? 1 : 0,
+        'scheme'          => get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' ),
     ] );
 }
 
@@ -1539,6 +1583,33 @@ exit 0</pre>
                     </div>
                     <p class="cs-pcr-note" style="margin-top:14px;">To preview: enable the toggle, then visit any URL on this site that does not exist — e.g. <code><?php echo esc_html( rtrim( home_url( '/' ), '/' ) ); ?>/this-page-does-not-exist</code></p>
                     <div id="cs-pcr-settings-message" style="margin-top:12px;display:none;"></div>
+                </div>
+            </div>
+
+            <div class="cs-pcr-card" style="margin-top:16px;">
+                <div class="cs-pcr-card-header cs-pcr-header-blue">
+                    <span>404 Page Colour Scheme</span>
+                </div>
+                <div class="cs-pcr-card-body">
+                    <p style="margin-bottom:16px;">Choose a colour palette for the custom 404 page.</p>
+                    <div class="cs-pcr-scheme-grid" id="cs-pcr-scheme-grid">
+                        <?php
+                        $current_scheme = get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' );
+                        foreach ( cs_pcr_get_404_schemes() as $key => $s ) :
+                        ?>
+                        <button type="button" class="cs-pcr-scheme-swatch<?php echo $key === $current_scheme ? ' active' : ''; ?>" data-scheme="<?php echo esc_attr( $key ); ?>">
+                            <span class="cs-pcr-scheme-preview" style="background:linear-gradient(135deg,<?php echo esc_attr( $s['bg1'] ); ?>,<?php echo esc_attr( $s['bg2'] ); ?>);">
+                                <span class="cs-pcr-scheme-accent" style="background:<?php echo esc_attr( $s['acc'] ); ?>;"></span>
+                            </span>
+                            <span class="cs-pcr-scheme-name"><?php echo esc_html( $s['name'] ); ?></span>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <div style="margin-top:16px;display:flex;align-items:center;gap:10px;">
+                        <button type="button" class="cs-pcr-btn cs-pcr-btn-primary" id="cs-pcr-save-scheme">Save Scheme</button>
+                        <a href="<?php echo esc_url( home_url( '/this-page-does-not-exist' ) ); ?>" target="_blank" rel="noopener" class="cs-pcr-btn cs-pcr-btn-secondary">Preview 404 &rarr;</a>
+                    </div>
+                    <div id="cs-pcr-scheme-message" style="margin-top:10px;display:none;"></div>
                 </div>
             </div>
 
