@@ -276,8 +276,9 @@
     }
 
     // ── Log loading ────────────────────────────────────────────────────────────────────
-    var allLogEntries   = [];
-    var autoReloadTimer = null;
+    var allLogEntries      = [];
+    var lastFilteredLines  = [];
+    var autoReloadTimer    = null;
 
     $(document).on('click', '#cs-pcr-load-logs', function () {
         fetchLogs();
@@ -342,6 +343,7 @@
         $('#cs-pcr-logs-empty').hide();
         $('#cs-pcr-log-wrap').show();
         $('#cs-pcr-log-entry-count').text('(' + filtered.length + ')');
+        $('#cs-pcr-clear-logs').show();
 
         var levelColors = {
             fatal:   '#ff6b6b',
@@ -360,7 +362,9 @@
             nginx:     '#f472b6'
         };
 
+        lastFilteredLines = [];
         filtered.forEach(function (e) {
+            lastFilteredLines.push('[' + e.source + '] ' + e.line);
             var lineColor  = levelColors[e.level]  || '#e2e8f0';
             var srcColor   = sourceColors[e.source] || '#94a3b8';
             var srcLabel   = '<span style="color:' + srcColor + ';font-size:10px;font-weight:700;margin-right:6px;opacity:0.85;">[' + escHtml(e.source) + ']</span>';
@@ -372,6 +376,41 @@
         // Scroll to top (newest first)
         $out.scrollTop(0);
     }
+
+    // Clear log files on server + reset display
+    $(document).on('click', '#cs-pcr-clear-logs', function () {
+        if (!window.confirm('This will truncate all writable log files on the server (watchdog log, debug.log). System logs (Apache, Nginx) are skipped if not writable.\n\nContinue?')) { return; }
+        var $btn = $(this);
+        $btn.prop('disabled', true).text('Clearing…');
+        $.post(CS_PCR.ajax_url, { action: 'cs_pcr_clear_logs', nonce: CS_PCR.nonce }, function (resp) {
+            $btn.prop('disabled', false);
+            allLogEntries     = [];
+            lastFilteredLines = [];
+            $('#cs-pcr-log-output').empty();
+            $('#cs-pcr-log-wrap, #cs-pcr-logs-empty, #cs-pcr-logs-meta').hide();
+            $('#cs-pcr-log-entry-count').text('');
+            $('#cs-pcr-filter-source').empty().append('<option value="">All sources</option>').hide();
+            $('#cs-pcr-filter-level, #cs-pcr-filter-text').val('');
+            $btn.hide();
+            if (resp.success && resp.data.cleared.length) {
+                var msg = 'Cleared: ' + resp.data.cleared.join(', ');
+                if (resp.data.skipped.length) { msg += '. Skipped (not writable): ' + resp.data.skipped.join(', '); }
+                $('#cs-pcr-logs-meta').text(msg).show();
+            }
+        }).fail(function () {
+            $btn.prop('disabled', false).html('&#10005; Clear');
+        });
+    });
+
+    // Copy log to clipboard
+    $(document).on('click', '#cs-pcr-copy-logs', function () {
+        if (!lastFilteredLines.length) { return; }
+        var $btn = $(this);
+        navigator.clipboard.writeText(lastFilteredLines.join('\n')).then(function () {
+            $btn.text('Copied!');
+            setTimeout(function () { $btn.html('&#128203; Copy'); }, 2000);
+        });
+    });
 
     // Live filter updates
     $(document).on('change', '#cs-pcr-filter-source, #cs-pcr-filter-level', renderLogEntries);
@@ -394,9 +433,23 @@
     }
 
     // ── Settings — colour scheme picker ─────────────────────────────────────
+    // Initialise preview link with the currently-active scheme on page load.
+    (function () {
+        var scheme = $('.cs-pcr-scheme-swatch.active').data('scheme') || 'ocean';
+        var $preview = $('a[href*="this-page-does-not-exist"]');
+        if ($preview.length) {
+            var base = $preview.attr('href').split('?')[0];
+            $preview.attr('href', base + '?cs_pcr_preview_scheme=' + encodeURIComponent(scheme));
+        }
+    }());
+
     $(document).on('click', '.cs-pcr-scheme-swatch', function () {
         $('.cs-pcr-scheme-swatch').removeClass('active');
         $(this).addClass('active');
+        var scheme = $(this).data('scheme') || 'ocean';
+        var $preview = $('a[href*="this-page-does-not-exist"]');
+        var base = $preview.attr('href').split('?')[0];
+        $preview.attr('href', base + '?cs_pcr_preview_scheme=' + encodeURIComponent(scheme));
     });
 
     $(document).on('click', '#cs-pcr-save-scheme', function () {

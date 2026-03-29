@@ -235,7 +235,24 @@
     flex-shrink: 0;
 }
 
-.cs-pcr-terminal-label { color: #00e5ff; margin-left: 4px; }
+.cs-pcr-terminal-label { color: #00e5ff; margin-left: 4px; flex: 1; }
+
+.cs-pcr-copy-logs-btn {
+    margin-left: auto;
+    padding: 2px 10px;
+    background: transparent;
+    border: 1px solid #00e5ff;
+    border-radius: 3px;
+    color: #00e5ff;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.cs-pcr-copy-logs-btn:hover { background: #00e5ff; color: #0d1b2a; }
 
 .cs-pcr-terminal {
     background: #0f1117;
@@ -446,6 +463,19 @@
     letter-spacing: 0.3px;
 }
 .cs-pcr-card-header .cs-pcr-btn-load-logs:hover { background: #1a6a9a; color: #fff; }
+
+.cs-pcr-card-header .cs-pcr-btn-clear-logs {
+    font-size: 11px;
+    padding: 5px 14px;
+    background: transparent;
+    color: #e57373;
+    border: 1px solid #e57373;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+.cs-pcr-card-header .cs-pcr-btn-clear-logs:hover { background: #e57373; color: #fff; }
 
 /* ── Card header orange (Logs & Debug tab) ── */
 .cs-pcr-header-orange { background: linear-gradient(135deg, #7a2000 0%, #bf360c 100%); border-bottom: 3px solid #ff9800; }

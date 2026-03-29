@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       CloudScale Crash Recovery
  * Description:       System-cron-based watchdog that probes the site every minute. If a crash is detected, deactivates and deletes the most recently modified plugin (within 10 minutes). Includes compatibility checks to validate the instance supports system cron.
- * Version:           1.6.17
+ * Version:           1.6.21
  * Requires at least: 6.0
  * Tested up to:      6.9
  * Requires PHP:      8.0
@@ -27,7 +27,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'CS_PCR_VERSION', '1.6.17' );
+define( 'CS_PCR_VERSION', '1.6.21' );
 define( 'CS_PCR_PROBE_KEY',      'cs_pcr_probe' );
 define( 'CS_PCR_OK_BODY',        'CLOUDSCALE_OK' );
 define( 'CS_PCR_WINDOW_SECONDS', 600 );
@@ -46,6 +46,7 @@ add_action( 'admin_enqueue_scripts', 'cs_pcr_enqueue_assets' );
 add_action( 'admin_init',            'cs_pcr_no_cache_headers' );
 add_action( 'wp_ajax_cs_pcr_run_checks',    'cs_pcr_ajax_run_checks' );
 add_action( 'wp_ajax_cs_pcr_get_logs',      'cs_pcr_ajax_get_logs' );
+add_action( 'wp_ajax_cs_pcr_clear_logs',    'cs_pcr_ajax_clear_logs' );
 add_action( 'wp_ajax_cs_pcr_enable_debug',  'cs_pcr_ajax_enable_debug' );
 add_action( 'wp_ajax_cs_pcr_disable_debug', 'cs_pcr_ajax_disable_debug' );
 add_action( 'wp_ajax_cs_pcr_check_config',  'cs_pcr_ajax_check_config' );
@@ -262,7 +263,12 @@ function cs_pcr_maybe_custom_404() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?> &mdash; <?php echo esc_html( $site_name ); ?></title>
 <link rel="stylesheet" href="<?php echo esc_url( plugin_dir_url( __FILE__ ) . 'custom-404.css' ) . '?ver=' . CS_PCR_VERSION . '.' . filemtime( plugin_dir_path( __FILE__ ) . 'custom-404.css' ); ?>">
-<?php $scheme_css = cs_pcr_404_scheme_css( get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' ) ); if ( $scheme_css ) : ?><style><?php echo $scheme_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- output of cs_pcr_404_scheme_css() contains only pre-validated hex colours and static CSS property names ?></style><?php endif; ?>
+<?php
+    $preview_key = isset( $_GET['cs_pcr_preview_scheme'] ) ? sanitize_key( wp_unslash( $_GET['cs_pcr_preview_scheme'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only palette preview, no state change
+    $all_schemes = cs_pcr_get_404_schemes();
+    $active_scheme = ( $preview_key && isset( $all_schemes[ $preview_key ] ) ) ? $preview_key : get_option( CS_PCR_404_SCHEME_OPTION, 'ocean' );
+    $scheme_css = cs_pcr_404_scheme_css( $active_scheme );
+    if ( $scheme_css ) : ?><style><?php echo $scheme_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- output of cs_pcr_404_scheme_css() contains only pre-validated hex colours and static CSS property names ?></style><?php endif; ?>
 </head>
 <body>
 <h1 class="cs404-heading">404 <?php echo esc_html__( 'Page Not Found', 'cloudscale-crash-recovery' ); ?></h1>
@@ -756,11 +762,51 @@ function cs_pcr_ajax_get_logs() {
 }
 
 /**
+ * AJAX handler: truncates all writable log files tracked by the unified log viewer.
+ *
+ * Only empties files the PHP process has write permission to. System-owned logs
+ * (Apache, Nginx, PHP error log) are silently skipped when not writable.
+ *
+ * @since 1.6.21
+ */
+function cs_pcr_ajax_clear_logs() {
+    check_ajax_referer( 'cs_pcr_checks', 'nonce' );
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( 'Insufficient permissions.' );
+    }
+
+    $sources = [
+        'watchdog'  => CS_PCR_LOG_FILE,
+        'wp_debug'  => WP_CONTENT_DIR . '/debug.log',
+        'php_error' => (string) ini_get( 'error_log' ),
+        'apache'    => '/var/log/httpd/error_log',
+        'apache2'   => '/var/log/apache2/error.log',
+        'nginx'     => '/var/log/nginx/error.log',
+    ];
+
+    $cleared = [];
+    $skipped = [];
+
+    foreach ( $sources as $label => $path ) {
+        if ( empty( $path ) || ! file_exists( $path ) ) { continue; }
+        if ( is_writable( $path ) ) {
+            file_put_contents( $path, '' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            $cleared[] = $label;
+        } else {
+            $skipped[] = $label;
+        }
+    }
+
+    wp_send_json_success( [ 'cleared' => $cleared, 'skipped' => $skipped ] );
+}
+
+/**
  * Reads log lines from a file that fall within the last 24 hours.
  *
  * Reads up to 2 000 lines from the end of the file (using `tail` when available),
  * then discards lines whose parsed timestamp predates `$cutoff`. Lines with no
- * recognisable timestamp are included (timestamp 0).
+ * recognisable timestamp are treated as continuations of the preceding timestamped
+ * line and are included or excluded together with that anchor line.
  *
  * @since  1.0.0
  * @param  string $path   Absolute path to the log file.
@@ -778,14 +824,34 @@ function cs_pcr_read_log_last_24h( $path, $cutoff ) {
         if ( empty( $raw ) ) { return []; }
         $lines = array_filter( array_map( 'trim', explode( "\n", $raw ) ) );
     }
-    $result = [];
+    // Group continuation lines (no timestamp) with their preceding timestamped line.
+    // A "block" is one timestamped line plus any immediately following un-timestamped lines.
+    // The block is included only if the anchor timestamp falls within the cutoff window.
+    $result       = [];
+    $block        = [];
+    $block_ts     = 0;
+
+    $flush = function () use ( &$block, &$block_ts, $cutoff, &$result ) {
+        if ( ! empty( $block ) && $block_ts >= $cutoff ) {
+            foreach ( $block as $l ) {
+                $result[] = $l;
+            }
+        }
+        $block    = [];
+        $block_ts = 0;
+    };
+
     foreach ( $lines as $line ) {
         if ( empty( $line ) ) { continue; }
         $ts = Cloudscale_Crash_Recovery_Utils::parse_log_timestamp( $line );
-        if ( $ts === 0 || $ts >= $cutoff ) {
-            $result[] = $line;
+        if ( $ts > 0 ) {
+            $flush();
+            $block_ts = $ts;
         }
+        $block[] = $line;
     }
+    $flush();
+
     return $result;
 }
 
@@ -1515,6 +1581,7 @@ exit 0</pre>
                     <span>Unified Log Viewer <span id="cs-pcr-log-entry-count" class="cs-pcr-log-count-badge"></span></span>
                     <div class="cs-pcr-header-actions">
                         <button type="button" class="cs-pcr-btn cs-pcr-btn-load-logs" id="cs-pcr-load-logs">&#128203; Load Logs</button>
+                        <button type="button" class="cs-pcr-btn cs-pcr-btn-clear-logs" id="cs-pcr-clear-logs" style="display:none;">&#10005; Clear</button>
                         <button type="button" class="cs-pcr-btn cs-pcr-btn-explain"
                             data-title="Unified Log Viewer"
                             data-body="Aggregates the last 24 hours of entries from all available log sources: the CloudScale watchdog log, WordPress debug.log, the PHP error log, and the Apache or Nginx error log. Entries are merged and sorted newest-first. Use the source filter to isolate a specific log. Entries without a parseable timestamp appear at the bottom. Up to 500 entries are shown per refresh.">
@@ -1551,6 +1618,7 @@ exit 0</pre>
                         <div class="cs-pcr-terminal-header">
                             <span class="cs-pcr-terminal-dot"></span>
                             <span class="cs-pcr-terminal-label" id="cs-pcr-log-terminal-label">unified log — last 24 hours</span>
+                            <button type="button" id="cs-pcr-copy-logs" class="cs-pcr-copy-logs-btn" title="Copy log to clipboard">&#128203; Copy</button>
                         </div>
                         <div class="cs-pcr-terminal cs-pcr-log-terminal" id="cs-pcr-log-output"></div>
                     </div>
