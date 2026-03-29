@@ -22,7 +22,29 @@ CloudScale Crash Recovery is a lightweight watchdog plugin that automatically de
 
 == Changelog ==
 
-= 1.5.27 =
+= 1.6.21 =
+* Added Copy to Clipboard button in the Unified Log Viewer terminal header.
+* Added Clear button that truncates writable server-side log files (watchdog, debug.log) with confirmation. System logs skipped if not writable.
+* 404 Preview now reflects the currently selected (unsaved) colour palette — no save required.
+* Fixed: log entries with no parseable timestamp (stack traces, HTML fragments) were incorrectly shown regardless of age. Now grouped with their anchor line and filtered correctly.
+
+= 1.6.17 =
+* Expanded 404 colour scheme picker from 6 to 12 palettes.
+* Added Asteroids as game 5 in the 404 Olympics.
+* Top-10 leaderboard shown on canvas welcome screen for every game.
+* Jetpack, Racer difficulty eased; scores capped at 999,999 with 6-digit display.
+* Fixed leaderboard deduplication, home button, mobile scroll trap, score cheat protection, and IP rate limiting.
+* Fixed mtime cache-busting for custom-404.css and custom-404.js.
+
+= 1.6.0 =
+* Replaced single Runner game with the 404 Olympics — Runner, Jetpack, Racer, Snake, and Asteroids with per-game high scores.
+* Per-game scores persisted server-side via REST API.
+
+= 1.5.2 =
+* PCP compliance fixes.
+* Security hardening: cast tail line count to int before shell interpolation.
+
+= 1.5.0 =
 * Added opt-in custom 404 page — clean, self-contained branded page, no theme dependency.
 * Added PHP CLI and curl path fallbacks for FPM environments.
 * Added Settings tab in admin UI.
